@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_project/screen/chat_screen.dart';
 import 'package:neverland_project/screen/home_screen.dart';
 import 'package:neverland_project/screen/verification_screen.dart';
 
 void main() {
   runApp(const MyApp());
 }
+
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -16,7 +19,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/verify',
       routes: {
         '/verify': (context) => const VerificationScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/home': (context) => const ChatScreen(),
       },
     );
   }
