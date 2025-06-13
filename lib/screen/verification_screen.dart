@@ -12,6 +12,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   bool _isInvalid = false;
 
   void _validateCode() {
+    FocusScope.of(context).unfocus(); // 키보드 닫기
     if (_codeController.text != "1234") {
       setState(() {
         _isInvalid = true;
@@ -20,7 +21,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       setState(() {
         _isInvalid = false;
       });
-      // TODO: 다음 화면 이동 로직 추가 가능
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
