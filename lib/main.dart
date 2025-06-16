@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:neverland_flutter/screen/home_screen.dart';
+import 'package:neverland_flutter/screen/login.dart';
 
 void main() {
   runApp(
     MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: HomeScreen()
+        home: LoginScreen(),
     ),
 // git test
   );
