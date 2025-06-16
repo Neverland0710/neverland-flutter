@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/family_certification_screen.dart';
 
 class TermsAgreementScreen extends StatefulWidget {
   const TermsAgreementScreen({super.key});
@@ -124,14 +125,27 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
               child: ElevatedButton(
                 onPressed: (termsChecked && privacyChecked)
                     ? () {
-                  // TODO: 다음 화면 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FamilyCertificationScreen(),
+                    ),
+                  );
                 }
                     : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF173560),
-                  disabledBackgroundColor: Colors.grey[300],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                      if (states.contains(MaterialState.disabled)) {
+                        return const Color(0xFFD3D3D3); // 비활성
+                      }
+                      return const Color(0xFF7FA8D7);   // 활성
+                    },
+                  ),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 child: const Text(
@@ -144,7 +158,8 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+
+            const SizedBox(height: 50),
           ],
         ),
       ),
