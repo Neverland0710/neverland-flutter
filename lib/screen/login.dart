@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/terms_agreement_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -41,7 +42,14 @@ class LoginScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TermsAgreementScreen(),
+                      ),
+                    );
+                  },
                   icon: Image.asset(
                     'asset/image/kakao_icon.png',
                     height: 24,
@@ -63,6 +71,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
               ),
+
               const SizedBox(height: 12),
 
               // 구글 로그인 버튼
