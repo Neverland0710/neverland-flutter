@@ -61,6 +61,7 @@ flutter:
     - asset/image/main_header.png
     - asset/image/speech_bubble.png
     - asset/image/letter_waiting.jpg
+    - asset/image/letter_arrived.jpg
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

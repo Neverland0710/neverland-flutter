@@ -9,14 +9,16 @@ class LetterDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isArrived = letter.isArrived; // ✅ 답장 도착 여부
+
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9), // 배경 연한 블루
+      backgroundColor: const Color(0xFFE9F0F9),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F0F9), // 앱바도 동일 배경색
+        backgroundColor: const Color(0xFFE9F0F9),
         elevation: 0,
-        leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
+        leading: const BackButton(color: Colors.black),
         title: const Text(
-          '내게 온 편지', // 상단 제목
+          '내게 온 편지',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -27,13 +29,11 @@ class LetterDetailPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0), // 전체 패딩
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
-              // 수신자 정보
               const Text(
                 'TO. 정동연',
                 style: TextStyle(
@@ -42,10 +42,7 @@ class LetterDetailPage extends StatelessWidget {
                   fontFamily: 'Pretendard',
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // 편지 내용 카드 UI
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -63,7 +60,6 @@ class LetterDetailPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 편지 제목
                     Text(
                       letter.title,
                       style: const TextStyle(
@@ -73,8 +69,6 @@ class LetterDetailPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // 편지 내용
                     Text(
                       letter.content,
                       style: const TextStyle(
@@ -86,21 +80,15 @@ class LetterDetailPage extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // 카드 하단 간격
-              const SizedBox(height: 0),
-
-              // 하단 시스템 패딩 고려
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-
-              // 답장 대기 UI
+              const SizedBox(height: 24),
               Center(
                 child: Column(
                   children: [
-                    // 안내 텍스트
-                    const Text(
-                      '답장을 기다리는 중이에요',
-                      style: TextStyle(
+                    Text(
+                      isArrived
+                          ? '편지 답장이 도착했어요!'
+                          : '답장을 기다리는 중이에요',
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black,
                         fontWeight: FontWeight.w500,
@@ -108,29 +96,34 @@ class LetterDetailPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // 대기 이미지
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.asset(
-                        'asset/image/letter_waiting.jpg',
+                        isArrived
+                            ? 'asset/image/letter_arrived.jpg'
+                            : 'asset/image/letter_waiting.jpg',
                         width: 280,
                         height: 280,
                         fit: BoxFit.cover,
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // 답장 보기 버튼
                     SizedBox(
                       width: 200,
                       height: 48,
                       child: ElevatedButton(
                         onPressed: () {
-                          // 답장 열람 액션 (추후 연결)
+                          if (isArrived) {
+                            // ✅ 답장이 도착했다면 이동할 화면 연결
+                            // Navigator.push(context, MaterialPageRoute(...));
+                          } else {
+                            // 도착 전이면 비활성 or 무반응
+                          }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xBFBFBF), // 연한 회색 (비활성 느낌)
+                          backgroundColor: isArrived
+                              ? const Color(0xFF90B4E0)
+                              : const Color(0xFFBFBFBF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -149,8 +142,6 @@ class LetterDetailPage extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // 하단 여백
               const SizedBox(height: 20),
             ],
           ),
