@@ -57,6 +57,7 @@ flutter:
     - asset/image/google_icon.png
     - asset/image/apple_icon.png
     - asset/image/main_header.png
+    - asset/image/speech_bubble.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
