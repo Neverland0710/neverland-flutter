@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:neverland_flutter/screen/voice_call_screen.dart';
+import 'package:neverland_flutter/screen/chat_page.dart'; // 경로는 너 프로젝트에 맞춰 조정
 
 
 class MainPage extends StatelessWidget {
@@ -97,11 +98,17 @@ class MainPage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const VoiceCallScreen(), // ✅ 음성 통화 화면으로 이동
+                builder: (context) => const VoiceCallScreen(),
+              ),
+            );
+          } else if (label == '실시간 채팅') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const RealTimeChatPage(),
               ),
             );
           }
-          // 다른 label에 따라 채팅/편지/설정도 추가 가능
         },
         child: Container(
           height: 65,
@@ -137,5 +144,6 @@ class MainPage extends StatelessWidget {
       ),
     );
   }
+
 
 }
