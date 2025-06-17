@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:neverland_flutter/model/letter.dart';
-import 'package:neverland_flutter/screen/letter_list_page.dart'; // ✅ 중복 import 제거
+import 'letter_list_page.dart';
 
 class LetterWritePage extends StatefulWidget {
   const LetterWritePage({super.key});
@@ -34,7 +34,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,8 +48,6 @@ class _LetterWritePageState extends State<LetterWritePage> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // 🔤 제목 입력 필드
               TextField(
                 controller: _titleController,
                 decoration: const InputDecoration(
@@ -58,67 +56,59 @@ class _LetterWritePageState extends State<LetterWritePage> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // 📝 본문 입력 영역
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: _contentController,
-                        maxLines: null,
-                        maxLength: 2000,
-                        onChanged: (_) {
-                          if (_showInfo) {
-                            setState(() {
-                              _showInfo = false;
-                            });
-                          }
-                        },
-                        decoration: const InputDecoration(
-                          hintText: '내용을 입력해주세요.',
-                          border: InputBorder.none,
-                          counterText: '',
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _contentController,
+                      maxLines: null,
+                      maxLength: 2000,
+                      onChanged: (_) {
+                        if (_showInfo) {
+                          setState(() {
+                            _showInfo = false;
+                          });
+                        }
+                      },
+                      decoration: const InputDecoration(
+                        hintText: '내용을 입력해주세요.',
+                        border: InputBorder.none,
+                        counterText: '',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_showInfo) ...[
+                      const Text(
+                        '편지는 최대 2,000자 제한합니다.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.black87,
+                          fontFamily: 'Pretendard',
                         ),
                       ),
                       const SizedBox(height: 8),
-
-                      // ℹ️ 안내 문구 (처음에만 보임)
-                      if (_showInfo) ...[
-                        const Text(
-                          '편지는 최대 2,000자 제한합니다.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
-                            fontFamily: 'Pretendard',
-                          ),
+                      const Text(
+                        '유의사항\n'
+                            '・ 하늘에서 온 편지 생성되기까지 작성 완료 후 하루 소요될 수 있습니다.\n'
+                            '・ 편지 작성 완료 후, 편지 내용 수정은 불가능합니다.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          height: 1.6,
+                          fontFamily: 'Pretendard',
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '유의사항\n'
-                              '・ 하늘에서 온 편지 생성되기까지 작성 완료 후 하루 소요될 수 있습니다.\n'
-                              '・ 편지 작성 완료 후, 편지 내용 수정은 불가능합니다.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            height: 1.6,
-                            fontFamily: 'Pretendard',
-                          ),
-                        ),
-                      ]
-                    ],
-                  ),
+                      ),
+                    ]
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
-
-              // ✅ 작성 완료 버튼
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -131,17 +121,16 @@ class _LetterWritePageState extends State<LetterWritePage> {
                   ),
                   onPressed: () {
                     final title = _titleController.text.trim();
-                    final content = _contentController.text.trim();
                     if (title.isEmpty) return;
 
-                    // ✉️ 편지 객체 생성
+                    final now = DateTime.now();
+                    final content = _contentController.text.trim();
                     final newLetter = Letter(
                       title: title,
                       content: content,
                       createdAt: DateTime.now(),
                     );
 
-                    // 📬 작성 완료 후 편지 리스트 페이지로 이동
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -160,6 +149,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
                   ),
                 ),
               ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 20), // 하단 여백
             ],
           ),
         ),
