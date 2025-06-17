@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:neverland_flutter/model/letter.dart';
+import 'package:neverland_flutter/screen/letter_reply_detail_page.dart';
 
 /// 편지 상세 화면
 class LetterDetailPage extends StatelessWidget {
@@ -112,22 +113,27 @@ class LetterDetailPage extends StatelessWidget {
                       width: 200,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (isArrived) {
-                            // ✅ 답장이 도착했다면 이동할 화면 연결
-                            // Navigator.push(context, MaterialPageRoute(...));
-                          } else {
-                            // 도착 전이면 비활성 or 무반응
-                          }
-                        },
+                        onPressed: isArrived
+                            ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LetterReplyDetailPage(
+                                originalLetter: letter.content,
+                                replyLetter: letter.replyContent ?? '나도 외롭다 시발아',
+                              ),
+                            ),
+                          );
+                        }
+                            : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isArrived
-                              ? const Color(0xFF90B4E0)
-                              : const Color(0xFFBFBFBF),
+                          backgroundColor: isArrived ? const Color(0xFF90B4E0) : const Color(0xFFBFBFBF),
+                          disabledBackgroundColor: const Color(0xFFBFBFBF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
+
                         child: const Text(
                           '지금 답장 열어보기',
                           style: TextStyle(
@@ -138,7 +144,8 @@ class LetterDetailPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
+                    )
+
                   ],
                 ),
               ),
