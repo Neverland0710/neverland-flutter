@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/code_input_screen.dart';
 
 class FamilyCertificationScreen extends StatelessWidget {
   const FamilyCertificationScreen({super.key});
@@ -57,7 +58,12 @@ class FamilyCertificationScreen extends StatelessWidget {
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: 다음 단계로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CodeInputScreen(), // 여기 연결
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7FA8D7),
@@ -75,6 +81,7 @@ class FamilyCertificationScreen extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 50),
           ],
         ),
