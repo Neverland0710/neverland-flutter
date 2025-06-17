@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/voice_call_screen.dart';
+
 
 class MainPage extends StatelessWidget {
   const MainPage({super.key});
@@ -89,37 +91,51 @@ class MainPage extends StatelessWidget {
   Widget _buildMenuButton(BuildContext context, String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 40),
-      child: Container(
-        height: 65,
-        decoration: BoxDecoration(
-          color: const Color(0xFFABC9E8),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center, // ✅ 수직 가운데 정렬
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Inter',          // ✅ Inter 폰트
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,  // ✅ Bold
-                  color: Colors.white,
-                  height: 1.5,                  // ✅ Line height 150%
+      child: InkWell(
+        onTap: () {
+          if (label == '실시간 통화') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const VoiceCallScreen(), // ✅ 음성 통화 화면으로 이동
+              ),
+            );
+          }
+          // 다른 label에 따라 채팅/편지/설정도 추가 가능
+        },
+        child: Container(
+          height: 65,
+          decoration: BoxDecoration(
+            color: const Color(0xFFABC9E8),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.5,
+                  ),
                 ),
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.black, size: 16),
-            ),
-          ],
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.black, size: 16),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
 }
