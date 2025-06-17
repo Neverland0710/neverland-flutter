@@ -1,6 +1,8 @@
 import 'dart:async'; // ⏱ 자동 갱신을 위한 타이머
 import 'package:flutter/material.dart';
 import 'package:neverland_flutter/model/letter.dart';
+import 'package:neverland_flutter/screen/letter_detail_page.dart';
+
 
 class LetterListPage extends StatefulWidget {
   final List<Letter> letters;
@@ -99,11 +101,15 @@ class _LetterListPageState extends State<LetterListPage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            onPressed: isArrived
-                                ? () {
-                              // TODO: 답장 열람 페이지로 이동 구현 예정
-                            }
-                                : null,
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => LetterDetailPage(letter: letter),
+                                ),
+                              );
+                            },
+
                             child: const Text(
                               '답장 도착',
                               style: TextStyle(color: Colors.white),
