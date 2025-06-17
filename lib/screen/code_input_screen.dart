@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/main_page.dart';
 
 class CodeInputScreen extends StatefulWidget {
   const CodeInputScreen({super.key});
@@ -13,13 +14,17 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
 
   void _validateCode() {
     if (_codeController.text.trim() == '123456') {
-      // TODO: 다음 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainPage()), // ✅ MainPage로 이동
+      );
     } else {
       setState(() {
         _showError = true;
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
