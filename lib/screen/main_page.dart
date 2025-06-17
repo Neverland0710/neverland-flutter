@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/letter_write_page.dart';
 import 'package:neverland_flutter/screen/voice_call_screen.dart';
-import 'package:neverland_flutter/screen/chat_page.dart'; // 경로는 너 프로젝트에 맞춰 조정
-
+import 'package:neverland_flutter/screen/chat_page.dart';
 
 class MainPage extends StatelessWidget {
   const MainPage({super.key});
@@ -14,7 +14,7 @@ class MainPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ 상단 배경 이미지 (공백 제거됨)
+            // ✅ 상단 배경 이미지
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: SizedBox(
@@ -58,7 +58,7 @@ class MainPage extends StatelessWidget {
               ),
             ),
 
-            // ✅ 나머지 부분만 padding 적용
+            // ✅ 메뉴 영역
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -108,7 +108,15 @@ class MainPage extends StatelessWidget {
                 builder: (context) => const RealTimeChatPage(),
               ),
             );
+          } else if (label == '내게 온 편지') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LetterWritePage(),
+              ),
+            );
           }
+          // ⚠️ 설정 누를 때는 아직 아무 작업 없음
         },
         child: Container(
           height: 65,
@@ -144,6 +152,4 @@ class MainPage extends StatelessWidget {
       ),
     );
   }
-
-
 }
