@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  intl: ^0.18.1
+  image_picker: ^1.0.7
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -56,6 +58,10 @@ flutter:
     - asset/image/kakao_icon.png
     - asset/image/google_icon.png
     - asset/image/apple_icon.png
+    - asset/image/main_header.png
+    - asset/image/speech_bubble.png
+    - asset/image/letter_waiting.jpg
+    - asset/image/letter_arrived.jpg
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

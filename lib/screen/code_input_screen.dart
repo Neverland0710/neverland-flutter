@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neverland_flutter/screen/main_page.dart';
 
 class CodeInputScreen extends StatefulWidget {
   const CodeInputScreen({super.key});
@@ -10,23 +11,38 @@ class CodeInputScreen extends StatefulWidget {
 class _CodeInputScreenState extends State<CodeInputScreen> {
   final TextEditingController _codeController = TextEditingController();
   bool _showError = false;
+  bool _isLoading = false;
 
-  void _validateCode() {
+  void _validateCode() async {
+    setState(() {
+      _isLoading = true;
+      _showError = false;
+    });
+
+    await Future.delayed(const Duration(seconds: 2)); // 1초 로딩 효과
+
     if (_codeController.text.trim() == '123456') {
-      // TODO: 다음 화면으로 이동
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainPage()),
+      );
     } else {
       setState(() {
         _showError = true;
+        _isLoading = false;
       });
     }
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F0F9),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         leading: const BackButton(color: Colors.black),
         title: const Text(
@@ -68,6 +84,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
               ),
               child: TextField(
                 controller: _codeController,
+                enabled: !_isLoading,
                 style: const TextStyle(
                   fontFamily: 'Pretendard',
                   fontSize: 14,
@@ -106,10 +123,12 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
             SizedBox(
               width: double.infinity,
               height: 48,
-              child: ElevatedButton(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator()) // ✅ 로딩 중이면 로딩바
+                  : ElevatedButton(
                 onPressed: _validateCode,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7FA8D7),
+                  backgroundColor: const Color(0xFFBB9DF7),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -124,7 +143,8 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 50),
+
+            const SizedBox(height: 80),
           ],
         ),
       ),

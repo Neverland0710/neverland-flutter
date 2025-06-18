@@ -82,7 +82,7 @@ class FamilyCertificationScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 50),
+            const SizedBox(height: 80),
           ],
         ),
       ),
