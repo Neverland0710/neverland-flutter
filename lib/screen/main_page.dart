@@ -15,46 +15,48 @@ class MainPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ✅ 상단 배경 이미지
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 250,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Image.asset(
-                        'asset/image/main_header.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned(
-                      top: 20,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Image.asset(
-                          'asset/image/neverland_logo.png',
-                          width: 200,
-                        ),
-                      ),
-                    ),
-                    const Positioned(
-                      bottom: 16,
-                      left: 16,
-                      child: Text(
-                        '안녕하세요.\n기억을 잇는 따뜻한 공간 네버랜드입니다.',
-                        style: TextStyle(
-                          fontFamily: 'Pretendard',
-                          fontSize: 20,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
+// 수정 코드
+            Container(
+              width: double.infinity,
+              height: 250,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
                 ),
+                image: DecorationImage(
+                  image: AssetImage('asset/image/main_header.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 20,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Image.asset(
+                        'asset/image/neverland_logo.png',
+                        width: 200,
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    bottom: 16,
+                    left: 16,
+                    child: Text(
+                      '안녕하세요\n기억을 잇는 따뜻한 공간 네버랜드입니다',
+                      style: TextStyle(
+                        fontFamily: 'Pretendard',
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
