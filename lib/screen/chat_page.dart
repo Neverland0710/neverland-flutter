@@ -96,7 +96,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
               color: const Color(0xFFE5EEF7),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFF90B4E0), size: 32),
+            child: Icon(icon, color: const Color(0xFFBB9DF7), size: 32),
           ),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(fontSize: 14)),
@@ -140,7 +140,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF3F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: const Text('동연', style: TextStyle(color: Colors.black)),
@@ -172,7 +172,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                             maxWidth: MediaQuery.of(context).size.width * 0.7,
                           ),
                           decoration: BoxDecoration(
-                            color: isMe ? const Color(0xFFABC9E8) : Colors.white,
+                            color: isMe ? const Color(0xFFBB9DF7) : Colors.white,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: msg['image'] != null
@@ -236,7 +236,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFF90B4E0)),
+                    icon: const Icon(Icons.send, color: Color(0xFFBB9DF7)),
                     onPressed: _sendMessage,
                   ),
                 ],

@@ -9,7 +9,7 @@ class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +123,7 @@ class MainPage extends StatelessWidget {
         child: Container(
           height: 65,
           decoration: BoxDecoration(
-            color: const Color(0xFFABC9E8),
+            color: const Color(0xFFBB9DF7),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(

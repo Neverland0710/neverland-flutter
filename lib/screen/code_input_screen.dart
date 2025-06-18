@@ -40,9 +40,9 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F0F9),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         leading: const BackButton(color: Colors.black),
         title: const Text(
@@ -128,7 +128,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
                   : ElevatedButton(
                 onPressed: _validateCode,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7FA8D7),
+                  backgroundColor: const Color(0xFFBB9DF7),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -144,7 +144,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
               ),
             ),
 
-            const SizedBox(height: 50),
+            const SizedBox(height: 80),
           ],
         ),
       ),

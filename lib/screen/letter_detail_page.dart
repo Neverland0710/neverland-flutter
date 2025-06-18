@@ -13,9 +13,9 @@ class LetterDetailPage extends StatelessWidget {
     final bool isArrived = letter.isArrived; // ✅ 답장 도착 여부
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F0F9),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         leading: const BackButton(color: Colors.black),
         title: const Text(
@@ -127,7 +127,7 @@ class LetterDetailPage extends StatelessWidget {
                         }
                             : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isArrived ? const Color(0xFF90B4E0) : const Color(0xFFBFBFBF),
+                          backgroundColor: isArrived ? const Color(0xFFBB9DF7) : const Color(0xFFBFBFBF),
                           disabledBackgroundColor: const Color(0xFFBFBFBF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

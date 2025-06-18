@@ -18,9 +18,9 @@ class _LetterWritePageState extends State<LetterWritePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F0F9),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         leading: const BackButton(color: Colors.black),
         title: const Text(
@@ -114,7 +114,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
                 height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF90B4E0),
+                    backgroundColor: const Color(0xFFBB9DF7),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

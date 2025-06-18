@@ -27,9 +27,9 @@ class _LetterListPageState extends State<LetterListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE9F0F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFE9F0F9),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         leading: const BackButton(color: Colors.black),
         title: const Text(
@@ -96,7 +96,7 @@ class _LetterListPageState extends State<LetterListPage> {
                           // 📨 답장 도착 버튼
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF90B4E0),
+                              backgroundColor: const Color(0xFFBB9DF7),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -136,7 +136,7 @@ class _LetterListPageState extends State<LetterListPage> {
                     Navigator.pop(context); // 뒤로가기 (편지 작성 화면)
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF90B4E0),
+                    backgroundColor: const Color(0xFFBB9DF7),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

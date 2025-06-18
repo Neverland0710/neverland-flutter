@@ -27,7 +27,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
                 const SizedBox(width: 24),
                 const CircleAvatar(
                   radius: 24,
-                  backgroundColor: Color(0xFFABC9E8), // 프로필 이미지 자리
+                  backgroundColor: Color(0xFFBB9DF7), // 프로필 이미지 자리
                 ),
                 const SizedBox(width: 12),
                 const Column(
@@ -230,7 +230,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
                             ),
                             child: CircleAvatar(
                               radius: 36,
-                              backgroundColor: const Color(0xFF7FA8D7),
+                              backgroundColor: const Color(0xFFBB9DF7),
                               child: isListening
                               // 말하는 중: 네모 버튼
                                   ? const SizedBox(
