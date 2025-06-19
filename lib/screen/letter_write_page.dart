@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:neverland_flutter/model/letter.dart';
 import 'letter_list_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class LetterWritePage extends StatefulWidget {
   const LetterWritePage({super.key});
@@ -119,7 +121,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     final title = _titleController.text.trim();
                     if (title.isEmpty) return;
 
@@ -128,9 +130,22 @@ class _LetterWritePageState extends State<LetterWritePage> {
                     final newLetter = Letter(
                       title: title,
                       content: content,
-                      createdAt: DateTime.now(),
+                      createdAt: now,
+                      replyContent: '하늘에서 온 AI 답장이에요 😊', // ✅ 진짜 내용 넣기!
                     );
 
+
+                    // ✅ shared_preferences에 저장
+                    final prefs = await SharedPreferences.getInstance();
+                    final letterMap = {
+                      'title': newLetter.title,
+                      'content': newLetter.content,
+                      'createdAt': newLetter.createdAt.toIso8601String(),
+                      'replyContent': newLetter.replyContent ?? '',
+                    };
+                    await prefs.setString('savedLetter', jsonEncode(letterMap));
+
+                    // ✅ 등록 후 목록으로 이동
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -138,6 +153,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
                       ),
                     );
                   },
+
                   child: const Text(
                     '작성 완료',
                     style: TextStyle(

@@ -122,7 +122,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
             // 다음 버튼
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 60,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator()) // ✅ 로딩 중이면 로딩바
                   : ElevatedButton(
@@ -137,8 +137,9 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
                   '다음',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
-                    fontSize: 16,
+                    fontSize: 18,
                     color: Colors.white,
+                      fontWeight: FontWeight.w700,
                   ),
                 ),
               ),

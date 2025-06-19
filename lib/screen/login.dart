@@ -38,7 +38,8 @@ class LoginScreen extends StatelessWidget {
 
       print("✅ 전송할 Firebase idToken (앞부분): ${idToken.substring(0, 50)}");
 
-      final response = await http.post(
+      final response = await http.
+      post(
         Uri.parse("http://192.168.219.68:8000/auth/social-login"),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -66,24 +67,30 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFE8E4FF),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 60),
-              Image.asset('asset/image/neverland_logo.png', width: 300),
+              const SizedBox(height: 200),
+              Image.asset(
+                'asset/image/neverland_logo.png',
+                width: 360,
+                height: 120, // 원하면 비율 맞춰서 높이도 직접 지정 가능
+                fit: BoxFit.contain, // 이미지가 비율 유지하며 잘 들어오게
+              ),
+
               const SizedBox(height: 12),
               const Text(
                 '기억을 잇는 따뜻한 공간',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
                   height: 1.35,
-                  color: Color(0xFF173560),
+                  color: Color(0xFFBB9DF7),
                 ),
               ),
               const Spacer(),
@@ -111,7 +118,7 @@ class LoginScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFE812),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     elevation: 0,
                   ),
@@ -133,9 +140,10 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
                     side: const BorderSide(color: Colors.black26),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
                 ),
@@ -158,7 +166,7 @@ class LoginScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     elevation: 0,
                   ),
