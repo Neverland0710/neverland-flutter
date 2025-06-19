@@ -2,6 +2,7 @@ import 'dart:async'; // ⏱ 자동 갱신을 위한 타이머
 import 'package:flutter/material.dart';
 import 'package:neverland_flutter/model/letter.dart';
 import 'package:neverland_flutter/screen/letter_detail_page.dart';
+import 'package:neverland_flutter/screen/main_page.dart';
 
 
 class LetterListPage extends StatefulWidget {
@@ -14,14 +15,24 @@ class LetterListPage extends StatefulWidget {
 }
 
 class _LetterListPageState extends State<LetterListPage> {
+  Timer? _timer; // ✅ 타이머 저장할 변수
+
   @override
   void initState() {
     super.initState();
 
-    // ⏱ 1초마다 setState 호출 → isArrived 상태 반영을 위해 강제 갱신
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {});
+    // ⏱ 도착 여부 체크를 위해 1초마다 갱신
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {});
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // ✅ 타이머 종료
+    super.dispose();
   }
 
   @override
@@ -133,7 +144,12 @@ class _LetterListPageState extends State<LetterListPage> {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context); // 뒤로가기 (편지 작성 화면)
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MainPage(fromLetter: true)), // ✅
+                          (route) => false,
+                    );
+
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFBB9DF7),
@@ -142,12 +158,12 @@ class _LetterListPageState extends State<LetterListPage> {
                     ),
                   ),
                   child: const Text(
-                    '내 마음을 전해보기',
+                    '메인으로 돌아가기',
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),

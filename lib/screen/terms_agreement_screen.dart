@@ -72,6 +72,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                 '네, 모두 동의합니다.',
                 style: TextStyle(
                   fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),
               ),
@@ -121,7 +122,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
             // ✅ 동의 완료 버튼
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 60,
               child: ElevatedButton(
                 onPressed: (termsChecked && privacyChecked)
                     ? () {
@@ -152,7 +153,8 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                   '동의 완료',
                   style: TextStyle(
                     fontFamily: 'Pretendard',
-                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
                     color: Colors.white,
                   ),
                 ),
