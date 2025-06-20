@@ -13,4 +13,4 @@ key.properties
 **/*.keystore
 **/*.jks
 **/client_secret_*.json
-*.json
+**/google-services.json
