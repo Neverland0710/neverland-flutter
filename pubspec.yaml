@@ -78,6 +78,8 @@ flutter:
     - asset/animation/record_pulse.json
     - asset/animation/voice_playing.json
     - asset/animation/typing_dots.json
+    - asset/animation/letter_close.json
+    - asset/animation/letter_open.json
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

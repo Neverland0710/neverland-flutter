@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:neverland_flutter/model/letter.dart';
 import 'package:neverland_flutter/screen/letter_reply_detail_page.dart';
+import 'package:lottie/lottie.dart';
 
 /// 편지 상세 화면
 class LetterDetailPage extends StatelessWidget {
@@ -99,15 +100,24 @@ class LetterDetailPage extends StatelessWidget {
                     const SizedBox(height: 16),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        isArrived
-                            ? 'asset/image/letter_arrived.jpg'
-                            : 'asset/image/letter_waiting.jpg',
+                      child: isArrived
+                          ? Lottie.asset(
+                        'asset/animation/letter_open.json',
                         width: 280,
                         height: 280,
                         fit: BoxFit.cover,
+                        repeat: false, // 한 번만 재생되게
+                      )
+
+                          : Lottie.asset(
+                        'asset/animation/letter_close.json',
+                        width: 280,
+                        height: 280,
+                        fit: BoxFit.cover,
+                        repeat: true, // 반복할지 false로 할지 선택 가능
                       ),
                     ),
+
                     const SizedBox(height: 24),
                     SizedBox(
                       width: 200,

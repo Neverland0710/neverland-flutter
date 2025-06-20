@@ -12,7 +12,7 @@ class VoiceCallScreen extends StatefulWidget {
 class _VoiceCallScreenState extends State<VoiceCallScreen>
     with TickerProviderStateMixin {
   bool _isPressed = false;
-  bool isListening = true;
+  bool isListening = false;
 
   late final AnimationController _lottieController;
   bool _hasPlayed = false;
