@@ -42,7 +42,6 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   shared_preferences: ^2.2.2
   lottie: ^2.7.0
-  flutter_svg: ^2.0.7
 
 
 dev_dependencies:
@@ -66,7 +65,7 @@ flutter:
     - asset/image/kakao_icon.png
     - asset/image/google_icon.png
     - asset/image/apple_icon.png
-    - asset/image/main_header.svg
+    - asset/image/main_header.png
     - asset/image/speech_bubble.png
     - asset/image/letter_waiting.jpg
     - asset/image/letter_arrived.jpg
@@ -78,6 +77,7 @@ flutter:
     - asset/animation/call_end.json
     - asset/animation/record_pulse.json
     - asset/animation/voice_playing.json
+    - asset/animation/typing_dots.json
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

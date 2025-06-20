@@ -8,7 +8,6 @@ import 'package:neverland_flutter/screen/chat_page.dart';
 import 'package:neverland_flutter/screen/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class MainPage extends StatefulWidget {
   final bool fromLetter;
@@ -85,10 +84,13 @@ class _MainPageState extends State<MainPage> {
               children: [
                 AspectRatio(
                   aspectRatio: 375 / 200,
-                  child: SvgPicture.asset(
-                    'asset/image/main_header.svg',
-                    fit: BoxFit.cover,
+                  child: Image.asset(
+                    'asset/image/main_header.png', // 기본 파일명
+                    width: double.infinity,        // 너비 꽉 채우기
+                    height: 120,                   // 원하는 높이 지정
+                    fit: BoxFit.cover,             // 꽉 채우되 잘릴 수 있음
                   ),
+
                 ),
                 Positioned(
                   bottom: 0,
