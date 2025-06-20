@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:neverland_flutter/model/letter.dart';
 import 'package:neverland_flutter/screen/letter_list_page.dart';
 import 'package:neverland_flutter/screen/letter_write_page.dart';
 import 'package:neverland_flutter/screen/voice_call_screen.dart';
 import 'package:neverland_flutter/screen/chat_page.dart';
+import 'package:neverland_flutter/screen/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MainPage extends StatefulWidget {
   final bool fromLetter;
@@ -28,8 +31,6 @@ class _MainPageState extends State<MainPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    // 👉 다른 화면(편지쓰기/리스트 등)에서 돌아왔을 때만 불러오기
     if (widget.fromLetter) {
       _loadLetters();
     }
@@ -62,6 +63,16 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  void _logout() async {
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: 'jwt');
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,13 +81,12 @@ class _MainPageState extends State<MainPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // ✅ 상단 배경 이미지
             Stack(
               children: [
                 AspectRatio(
                   aspectRatio: 375 / 200,
-                  child: Image.asset(
-                    'asset/image/main_header.png',
+                  child: SvgPicture.asset(
+                    'asset/image/main_header.svg',
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -97,7 +107,6 @@ class _MainPageState extends State<MainPage> {
                 ),
               ],
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -116,8 +125,6 @@ class _MainPageState extends State<MainPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // ✅ 당신에게 온 편지
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 30),
                       decoration: BoxDecoration(
@@ -182,10 +189,7 @@ class _MainPageState extends State<MainPage> {
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
-                    // ✅ 메뉴 카드 3개 - 이미지 포함
                     _buildCardMenu(
                       context,
                       imagePath: 'asset/image/call_icon.png',
@@ -228,8 +232,22 @@ class _MainPageState extends State<MainPage> {
                         );
                       },
                     ),
-
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: TextButton(
+                        onPressed: _logout,
+                        child: const Text(
+                          '로그아웃',
+                          style: TextStyle(
+                            fontFamily: 'Pretendard',
+                            fontSize: 14,
+                            color: Colors.grey,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
