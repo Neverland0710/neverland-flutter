@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:neverland_flutter/screen/family_certification_screen.dart';
+import 'package:neverland_flutter/screen/code_input_screen.dart';
 
 class TermsAgreementScreen extends StatefulWidget {
   const TermsAgreementScreen({super.key});
@@ -129,7 +129,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const FamilyCertificationScreen(),
+                      builder: (context) => const CodeInputScreen(),
                     ),
                   );
                 }

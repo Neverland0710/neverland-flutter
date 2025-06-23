@@ -72,16 +72,6 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFE8E4FF),
       body: Stack(
         children: [
-          Align(
-            alignment: Alignment.topCenter,
-            child: Lottie.asset(
-              'asset/animation/plane_fly.json',
-              width: 600,
-              height: 300,
-              fit: BoxFit.contain,
-              repeat: true,
-            ),
-          ),
 
           SafeArea(
             child: Padding(

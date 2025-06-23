@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter/scheduler.dart';
+
+enum VoiceState { idle, speaking, listening }
 
 class VoiceCallScreen extends StatefulWidget {
   const VoiceCallScreen({super.key});
@@ -12,21 +15,35 @@ class VoiceCallScreen extends StatefulWidget {
 class _VoiceCallScreenState extends State<VoiceCallScreen>
     with TickerProviderStateMixin {
   bool _isPressed = false;
-  bool isListening = false;
+  VoiceState _voiceState = VoiceState.idle;
 
   late final AnimationController _lottieController;
+  late final Ticker _ticker;
+  Duration _callDuration = Duration.zero;
   bool _hasPlayed = false;
 
   @override
   void initState() {
     super.initState();
     _lottieController = AnimationController(vsync: this);
+    _ticker = createTicker((elapsed) {
+      setState(() {
+        _callDuration = elapsed;
+      });
+    })..start();
   }
 
   @override
   void dispose() {
+    _ticker.dispose();
     _lottieController.dispose();
     super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   @override
@@ -45,10 +62,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   backgroundColor: Color(0xFFBB9DF7),
                 ),
                 const SizedBox(width: 12),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       '정동연',
                       style: TextStyle(
                         fontFamily: 'pretendard',
@@ -58,8 +75,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       ),
                     ),
                     Text(
-                      '00:58',
-                      style: TextStyle(
+                      _formatDuration(_callDuration),
+                      style: const TextStyle(
                         fontFamily: 'pretendard',
                         fontSize: 14,
                         color: Colors.white,
@@ -79,34 +96,41 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   color: const Color(0xFFE9F0F9),
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: SingleChildScrollView( // ✅ 스크롤 추가
+                child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      isListening
-                          ? const Icon(
-                        Icons.graphic_eq,
-                        size: 40,
-                        color: Colors.deepPurple,
-                      )
-                          : SizedBox(
-                        width: 80,
-                        height: 80,
-                        child: Lottie.asset(
-                          'asset/animation/voice_wave.json',
-                          fit: BoxFit.contain,
-                          repeat: true,
+                      if (_voiceState == VoiceState.speaking) ...[
+                        const Icon(Icons.graphic_eq, size: 40, color: Colors.deepPurple),
+                        const SizedBox(height: 30),
+                        const Text(
+                          '나의 말을 듣고 있습니다.',
+                          style: TextStyle(
+                            fontFamily: 'pretendard',
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 30),
-                      const Text(
-                        '나의 말을 듣고 있습니다.',
-                        style: TextStyle(
-                          fontFamily: 'pretendard',
-                          fontSize: 16,
-                          color: Colors.grey,
+                      ] else if (_voiceState == VoiceState.listening) ...[
+                        SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: Lottie.asset(
+                            'asset/animation/voice_wave.json',
+                            fit: BoxFit.contain,
+                            repeat: true,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 30),
+                        const Text(
+                          '동연이가 대답을 준비중이에요',
+                          style: TextStyle(
+                            fontFamily: 'pretendard',
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 30),
                       const Text(
                         '안녕 동연아 여친이랑 언제 헤어지니?\n\n'
@@ -125,30 +149,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         ),
                       ),
                       const SizedBox(height: 30),
-                      const Text(
-                        '동연이가 대답을 준비중이에요',
-                        style: TextStyle(
-                          fontFamily: 'pretendard',
-                          fontSize: 16,
-                          color: Colors.grey,
+                      if (_voiceState == VoiceState.listening)
+                        const Text(
+                          '몰라 하늘나라에 있는데 어떻게 알아',
+                          style: TextStyle(
+                            fontFamily: 'pretendard',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 30),
-                      const Text(
-                        '몰라 하늘나라에 있는데 어떻게 알아',
-                        style: TextStyle(
-                          fontFamily: 'pretendard',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: Colors.black,
-                        ),
-                      ),
                     ],
                   ),
                 ),
               ),
             ),
-
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -181,13 +196,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                                 controller: _lottieController,
                                 onLoaded: (composition) {
                                   _lottieController.duration = composition.duration;
-                                  if (!isListening && !_hasPlayed) {
+                                  if (_voiceState == VoiceState.listening && !_hasPlayed) {
                                     _hasPlayed = true;
-                                    _lottieController
-                                      ..reset()
-                                      ..forward();
+                                    _lottieController..reset()..forward();
                                   }
-                                  if (isListening) {
+                                  if (_voiceState != VoiceState.listening) {
                                     _hasPlayed = false;
                                   }
                                 },
@@ -223,25 +236,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                     offset: const Offset(-70, 0),
                     child: Column(
                       children: [
-                        Visibility(
-                          visible: isListening,
-                          maintainSize: true,
-                          maintainAnimation: true,
-                          maintainState: true,
-                          child: Stack(
+                        if (_voiceState == VoiceState.speaking)
+                          Stack(
                             alignment: Alignment.center,
                             children: [
                               Transform.translate(
-                                offset: Offset(0, 75), // ← 숫자 늘리면 더 아래로 감
+                                offset: const Offset(0, 75),
                                 child: Image.asset(
                                   'asset/image/speech_bubble.png',
                                   width: 240,
                                 ),
                               ),
-
                               Transform.translate(
-                                offset: Offset(0, 70), // ← 원하는 만큼 아래로 조절
-                                child: Text(
+                                offset: const Offset(0, 70),
+                                child: const Text(
                                   '말씀을 멈추고 답변을 들으시려면\n버튼을 눌러주세요.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
@@ -254,56 +262,92 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                               ),
                             ],
                           ),
-                        ),
                         const SizedBox(height: 16),
                         InkWell(
                           onTap: () {
                             setState(() {
-                              isListening = !isListening;
-                              if (!isListening) {
-                                _lottieController
-                                  ..reset()
-                                  ..forward();
+                              if (_voiceState == VoiceState.idle) {
+                                _voiceState = VoiceState.speaking;
+                              } else if (_voiceState == VoiceState.speaking) {
+                                _voiceState = VoiceState.listening;
+                                _lottieController..reset()..forward();
                               }
                             });
                           },
                           child: Column(
-                            children: [
-                              isListening
-                                  ? Transform.translate(
-                                offset: const Offset(0, 45),
-                                child: Lottie.asset(
-                                  'asset/animation/record_pulse.json',
-                                  width: 160,
-                                  height: 160,
-                                  fit: BoxFit.contain,
-                                ),
-                              )
-                                  : Transform.translate(
-                                offset: Offset(0, -12), // ← y축 -값이면 위로 올라감
-                                child: Transform.scale(
-                                  scale: 2.5, // ← 크기 조절
-                                  child: Lottie.asset(
-                                    'asset/animation/voice_playing.json',
-                                    width: 48,
-                                    height: 48,
-                                    repeat: true,
-                                    fit: BoxFit.contain,
+                              children: [
+                                if (_voiceState == VoiceState.idle)
+                                  Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _voiceState = VoiceState.speaking;
+                                          });
+                                        },
+                                        child: Container(
+                                          width: 64,
+                                          height: 64,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFFBB9DF7),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.mic, color: Colors.white, size: 32),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '말하기',
+                                        style: TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Column(
+                                    children: [
+                                      if (_voiceState == VoiceState.speaking)
+                                        Transform.translate(
+                                          offset: const Offset(0, 45),
+                                          child: Lottie.asset(
+                                            'asset/animation/record_pulse.json',
+                                            width: 160,
+                                            height: 160,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        )
+                                      else if (_voiceState == VoiceState.listening)
+                                        Transform.translate(
+                                          offset: const Offset(0, -12),
+                                          child: Transform.scale(
+                                            scale: 2.5,
+                                            child: Lottie.asset(
+                                              'asset/animation/voice_playing.json',
+                                              width: 48,
+                                              height: 48,
+                                              repeat: true,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _voiceState == VoiceState.speaking
+                                            ? '그만 말하기'
+                                            : '답변 듣는 중',
+                                        style: const TextStyle(
+                                          fontFamily: 'Pretendard',
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
+                              ]
 
-
-                              const SizedBox(height: 8),
-                              Text(
-                                isListening ? '그만 말하기' : '답변 듣는 중',
-                                style: const TextStyle(
-                                  fontFamily: 'Pretendard',
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       ],

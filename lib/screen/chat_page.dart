@@ -249,7 +249,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                         ),
                         Text(
                           msg['time'] ?? '',
-                          style: const TextStyle(fontSize: 2, color: Colors.grey),
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                       ],
                     ),
