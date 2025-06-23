@@ -13,7 +13,6 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   ); // ✅ Firebase 초기화
   await initializeDateFormatting('ko'); // ✅ 한국어 날짜 포맷 초기화
-
   runApp(const MyApp());
 }
 

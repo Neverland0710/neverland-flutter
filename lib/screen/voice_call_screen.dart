@@ -79,65 +79,76 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   color: const Color(0xFFE9F0F9),
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    isListening
-                        ? Lottie.asset(
-                      'asset/animation/voice_wave.json',
-                      width: 120,
-                      height: 120,
-                      repeat: true,
-                    )
-                        : const Icon(
-                      Icons.graphic_eq,
-                      size: 40,
-                      color: Colors.grey,
-                    ),
-
-                    const SizedBox(height: 30),
-                    const Text(
-                      '나의 말을 듣고 있습니다.',
-                      style: TextStyle(
-                        fontFamily: 'pretendard',
-                        fontSize: 16,
-                        color: Colors.grey,
+                child: SingleChildScrollView( // ✅ 스크롤 추가
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      isListening
+                          ? const Icon(
+                        Icons.graphic_eq,
+                        size: 40,
+                        color: Colors.deepPurple,
+                      )
+                          : SizedBox(
+                        width: 80,
+                        height: 80,
+                        child: Lottie.asset(
+                          'asset/animation/voice_wave.json',
+                          fit: BoxFit.contain,
+                          repeat: true,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      '안녕 동연아 여친이랑 언제 헤어지니?',
-                      style: TextStyle(
-                        fontFamily: 'pretendard',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: Colors.black,
+                      const SizedBox(height: 30),
+                      const Text(
+                        '나의 말을 듣고 있습니다.',
+                        style: TextStyle(
+                          fontFamily: 'pretendard',
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      '동연이가 대답을 준비중이에요',
-                      style: TextStyle(
-                        fontFamily: 'pretendard',
-                        fontSize: 16,
-                        color: Colors.grey,
+                      const SizedBox(height: 30),
+                      const Text(
+                        '안녕 동연아 여친이랑 언제 헤어지니?\n\n'
+                            '동연아 또 술먹고 안나오는거야?\n\n'
+                            '그러게 술 조절해야지?\n\n'
+                            '자기 몸 관리도 자기 능력이야?\n\n'
+                            '그래서 대체 백엔드 연결은 언제할껀데?\n\n'
+                            '백엔드가 되야 프론트가 일을하지.\n\n'
+                            '나 심심해 일줘 빨리\n\n'
+                            '백엔드 연결좀 하자고 제발 빨리와라\n\n'
+                            '심심해 심심해 일줘 백엔드 시발아\n\n'
+                            '나 이러다 마지막에 일 ㅈㄴ 몰아줄꺼냐고\n\n',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      '몰라 하늘나라에 있는데 어떻게 알아',
-                      style: TextStyle(
-                        fontFamily: 'pretendard',
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: Colors.black,
+                      const SizedBox(height: 30),
+                      const Text(
+                        '동연이가 대답을 준비중이에요',
+                        style: TextStyle(
+                          fontFamily: 'pretendard',
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 30),
+                      const Text(
+                        '몰라 하늘나라에 있는데 어떻게 알아',
+                        style: TextStyle(
+                          fontFamily: 'pretendard',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

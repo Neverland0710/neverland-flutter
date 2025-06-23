@@ -8,6 +8,7 @@ import 'package:neverland_flutter/screen/chat_page.dart';
 import 'package:neverland_flutter/screen/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class MainPage extends StatefulWidget {
   final bool fromLetter;
@@ -61,6 +62,64 @@ class _MainPageState extends State<MainPage> {
       });
     }
   }
+  void _confirmLogout() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFFF8F4FF),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            '정말 나가시겠어요?',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          content: const Text(
+            '이탈 시 연결이 끊기며\n위약금은 100배로 청구됩니다.',
+            style: TextStyle(
+              fontFamily: 'Pretendard',
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                '조금만 더 있을래요',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  color: Colors.deepPurple,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFBB9DF7),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+                _logout(); // 이거 실행
+              },
+              child: const Text(
+                '네, 로그아웃할게요',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   void _logout() async {
     const storage = FlutterSecureStorage();
@@ -84,13 +143,12 @@ class _MainPageState extends State<MainPage> {
               children: [
                 AspectRatio(
                   aspectRatio: 375 / 200,
-                  child: Image.asset(
-                    'asset/image/main_header.png', // 기본 파일명
-                    width: double.infinity,        // 너비 꽉 채우기
-                    height: 120,                   // 원하는 높이 지정
-                    fit: BoxFit.cover,             // 꽉 채우되 잘릴 수 있음
+                  child: SvgPicture.asset(
+                    'asset/image/main_header.svg',
+                    width: double.infinity,
+                    height: 120,
+                    fit: BoxFit.cover,
                   ),
-
                 ),
                 Positioned(
                   bottom: 0,
@@ -237,7 +295,7 @@ class _MainPageState extends State<MainPage> {
                     const SizedBox(height: 24),
                     Center(
                       child: TextButton(
-                        onPressed: _logout,
+                        onPressed: _confirmLogout,
                         child: const Text(
                           '로그아웃',
                           style: TextStyle(
