@@ -29,6 +29,24 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
     });
   }
 
+  void _showTermsDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Text(content),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +82,6 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
             ),
             const SizedBox(height: 32),
 
-            // ✅ 모두 동의
             CheckboxListTile(
               value: allChecked,
               onChanged: _toggleAll,
@@ -81,7 +98,6 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
             ),
             const Divider(),
 
-            // 항목 1
             _buildAgreementItem(
               checked: termsChecked,
               onChanged: (val) {
@@ -91,9 +107,23 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                 });
               },
               title: '서비스 이용약관 동의 (필수)',
+              onViewPressed: () {
+                _showTermsDialog(
+                  '서비스 이용약관',
+                  '''
+제1조 (목적)
+이 약관은 네버랜드(이하 '회사')가 제공하는 서비스 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항 등을 규정함을 목적으로 합니다.
+
+제2조 (정의)
+‘회원’이라 함은 본 약관에 동의하고 서비스를 이용하는 자를 의미합니다.
+
+제3조 (약관의 효력 및 변경)
+회사는 관련 법령을 위반하지 않는 범위에서 본 약관을 변경할 수 있으며, 변경 시 서비스 내에 공지합니다.
+                  ''',
+                );
+              },
             ),
 
-            // 항목 2
             _buildAgreementItem(
               checked: privacyChecked,
               onChanged: (val) {
@@ -103,9 +133,23 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                 });
               },
               title: '개인정보 처리 방침 보기 (필수)',
+              onViewPressed: () {
+                _showTermsDialog(
+                  '개인정보 처리방침',
+                  '''
+1. 수집하는 개인정보 항목
+- 이름, 이메일, 전화번호, 생년월일 등
+
+2. 수집 및 이용목적
+- 회원 식별, 서비스 제공, 고객 지원, 마케팅 정보 전달
+
+3. 보유 및 이용기간
+- 회원 탈퇴 후 즉시 파기. 단, 관계법령에 따라 일정기간 보관할 수 있음.
+                  ''',
+                );
+              },
             ),
 
-            // 항목 3
             _buildAgreementItem(
               checked: marketingChecked,
               onChanged: (val) {
@@ -115,11 +159,25 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                 });
               },
               title: '마케팅 정보 메일, SMS 수신 동의 (선택)',
+              onViewPressed: () {
+                _showTermsDialog(
+                  '마케팅 수신 동의',
+                  '''
+1. 목적
+- 이벤트, 할인, 새로운 기능 안내 등 마케팅 정보 제공
+
+2. 수신 방법
+- 이메일, 문자(SMS), 푸시 알림 등을 통해 전달
+
+3. 수신 거부
+- 사용자는 언제든지 수신 거부 설정을 할 수 있으며, 수신 거부 시 해당 정보는 발송되지 않습니다.
+                  ''',
+                );
+              },
             ),
 
             const Spacer(),
 
-            // ✅ 동의 완료 버튼
             SizedBox(
               width: double.infinity,
               height: 60,
@@ -138,9 +196,9 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                   backgroundColor: MaterialStateProperty.resolveWith<Color>(
                         (Set<MaterialState> states) {
                       if (states.contains(MaterialState.disabled)) {
-                        return const Color(0xFFD3D3D3); // 비활성
+                        return const Color(0xFFD3D3D3);
                       }
-                      return const Color(0xFFBB9DF7);   // 활성
+                      return const Color(0xFFBB9DF7);
                     },
                   ),
                   shape: MaterialStateProperty.all(
@@ -172,6 +230,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
     required bool checked,
     required Function(bool?) onChanged,
     required String title,
+    required VoidCallback onViewPressed,
   }) {
     return Row(
       children: [
@@ -186,9 +245,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
           ),
         ),
         TextButton(
-          onPressed: () {
-            // TODO: 약관 보기 연결
-          },
+          onPressed: onViewPressed,
           child: const Text(
             '보기',
             style: TextStyle(

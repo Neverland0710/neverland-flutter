@@ -129,7 +129,6 @@ class LetterDetailPage extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => LetterReplyDetailPage(
-                                originalLetter: letter.content,
                                 replyLetter: letter.replyContent ?? '나도 외롭다 시발아',
                               ),
                             ),
@@ -143,7 +142,6 @@ class LetterDetailPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-
                         child: const Text(
                           '지금 답장 열어보기',
                           style: TextStyle(
@@ -154,7 +152,7 @@ class LetterDetailPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                    )
+                    ),
 
                   ],
                 ),

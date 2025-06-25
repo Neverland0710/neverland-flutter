@@ -333,7 +333,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                                             ),
                                           ),
                                         ),
-                                      const SizedBox(height: 8),
+                                       const SizedBox(height: 8),
                                       Text(
                                         _voiceState == VoiceState.speaking
                                             ? '그만 말하기'

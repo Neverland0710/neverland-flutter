@@ -172,9 +172,9 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFEDE4FF),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFD6C7FF),
         title: const Text('동연', style: TextStyle(color: Colors.black)),
         leading: const BackButton(color: Colors.black),
         elevation: 0.5,

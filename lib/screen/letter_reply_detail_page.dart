@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 class LetterReplyDetailPage extends StatelessWidget {
-  final String originalLetter;
   final String replyLetter;
 
   const LetterReplyDetailPage({
     super.key,
-    required this.originalLetter,
     required this.replyLetter,
   });
 
@@ -28,69 +26,51 @@ class LetterReplyDetailPage extends StatelessWidget {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            _buildLetterCard(
-              title: '내가 쓴 편지',
-              content: originalLetter,
-              backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 320),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8E7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.brown.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.brown.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            _buildLetterCard(
-              title: '고인으로부터의 답장',
-              content: replyLetter,
-              backgroundColor: const Color(0xFFDEE6EF), // 감성적인 하늘빛 카드
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // ✅ 카드가 내용 크기만큼만
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '고인으로부터의 답장',
+                  style: TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.brown,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  replyLetter,
+                  style: const TextStyle(
+                    fontFamily: 'Pretendard',
+                    fontSize: 14,
+                    height: 1.7,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLetterCard({
-    required String title,
-    required String content,
-    required Color backgroundColor,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            content,
-            style: const TextStyle(
-              fontFamily: 'Pretendard',
-              fontSize: 14,
-              height: 1.6,
-              color: Colors.black87,
-            ),
-          ),
-        ],
       ),
     );
   }
