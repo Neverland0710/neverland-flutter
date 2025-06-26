@@ -131,7 +131,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
                       title: title,
                       content: content,
                       createdAt: now,
-                      replyContent: '하늘에서 온 AI 답장이에요 😊', // ✅ 진짜 내용 넣기!
+                      replyContent: '하늘에서 온 AI 답장이에요 ',
                     );
 
 

@@ -14,16 +14,22 @@ class RealTimeChatPage extends StatefulWidget {
 class _RealTimeChatPageState extends State<RealTimeChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+
   final List<Map<String, dynamic>> _messages = [];
+  bool _isTyping = false;
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('ko');
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    _focusNode.addListener(() {
+      setState(() {});
+    });
   }
 
-  // 메시지 전송 함수
   void _sendMessage() {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
@@ -41,9 +47,40 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
 
     _messageController.clear();
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+    _sendFakeReply();
   }
 
-  // 리스트뷰 최하단으로 스크롤
+  void _sendFakeReply() {
+    final responses = [
+      "응, 알겠어!",
+      "좋아~",
+      "지금 확인해볼게.",
+      "ㅎㅎ 고마워~",
+      "알았어!",
+    ];
+    final reply = (responses..shuffle()).first;
+
+    setState(() {
+      _isTyping = true;
+    });
+
+    Future.delayed(const Duration(seconds: 3), () {
+      final now = DateTime.now();
+      final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
+
+      setState(() {
+        _isTyping = false;
+        _messages.add({
+          "sender": "상대방",
+          "text": reply,
+          "time": formattedTime,
+        });
+      });
+
+      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+    });
+  }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -54,7 +91,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     }
   }
 
-  // 미디어 선택 옵션 모달 표시
   void _showMediaOptions() {
     showModalBottomSheet(
       context: context,
@@ -79,7 +115,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     );
   }
 
-  // 모달 내 옵션 버튼 UI
   Widget _mediaOption(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: () {
@@ -105,7 +140,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     );
   }
 
-  // 카메라 이미지 선택
   Future<void> _pickFromCamera() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
@@ -113,7 +147,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     }
   }
 
-  // 갤러리 이미지 선택
   Future<void> _pickFromGallery() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -121,7 +154,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     }
   }
 
-  // 이미지 메시지 추가
   void _addImageMessage(File image) {
     final now = DateTime.now();
     final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
@@ -140,9 +172,9 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFEDE4FF),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFD6C7FF),
         title: const Text('동연', style: TextStyle(color: Colors.black)),
         leading: const BackButton(color: Colors.black),
         elevation: 0.5,
@@ -150,13 +182,32 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // 채팅 리스트
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                itemCount: _messages.length,
+                itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (_isTyping && index == _messages.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 12, bottom: 8),
+                      child: Row(
+                        children: const [
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Color(0xFFE5EEF7),
+                            child: Icon(Icons.more_horiz, size: 16, color: Colors.grey),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '상대방이 입력 중...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   final msg = _messages[index];
                   final isMe = msg['sender'] == '나';
 
@@ -166,13 +217,15 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                       crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                       children: [
                         Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.all(4),
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          padding: msg['image'] != null
+                              ? EdgeInsets.zero
+                              : const EdgeInsets.fromLTRB(12, 12, 12, 12),
                           constraints: BoxConstraints(
                             maxWidth: MediaQuery.of(context).size.width * 0.7,
                           ),
                           decoration: BoxDecoration(
-                            color: isMe ? const Color(0xFFBB9DF7) : Colors.white,
+                            color: isMe ? const Color(0xFFBB9DF7) : const Color(0xFFF2F2F2),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: msg['image'] != null
@@ -180,23 +233,23 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                             borderRadius: BorderRadius.circular(12),
                             child: Image.file(
                               msg['image'],
-                              width: 200,
-                              height: 200,
+                              width: 160,
+                              height: 160,
                               fit: BoxFit.cover,
                             ),
                           )
                               : Text(
                             msg['text'] ?? '',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Pretendard',
                               fontSize: 14,
-                              color: Colors.black87,
+                              color: isMe ? Colors.white : Colors.black87,
                             ),
                           ),
                         ),
                         Text(
                           msg['time'] ?? '',
-                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -204,8 +257,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                 },
               ),
             ),
-
-            // 메시지 입력창
             const Divider(height: 1),
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
@@ -226,6 +277,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                       ),
                       child: TextField(
                         controller: _messageController,
+                        focusNode: _focusNode,
                         decoration: const InputDecoration(
                           hintText: '메시지를 입력해주세요',
                           border: InputBorder.none,
@@ -236,7 +288,8 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFFBB9DF7)),
+                    icon: const Icon(Icons.send_rounded,
+                        color: Color(0xFFBB9DF7), size: 26),
                     onPressed: _sendMessage,
                   ),
                 ],
