@@ -59,11 +59,18 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
             // ✅ 상단 고정 영역
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 48),
+              padding: const EdgeInsets.symmetric(vertical: 60),
               decoration: const BoxDecoration(
-                color: Color(0xFFBB9DF7),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF8B7ED8), // 위쪽 색
+                    Color(0xFFA994E6), // 아래쪽 색
+                  ],
+                ),
               ),
+
               child: Column(
                 children: const [
                   Text(
@@ -106,33 +113,46 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
             dashPattern: [8, 4],
             strokeWidth: 2,
             child: Container(
-              height: 160,
+              height: 228,
               width: double.infinity,
               alignment: Alignment.center,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.camera_alt, size: 40, color: Color(0xFFBB9DF7)),
-                  SizedBox(height: 8),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '사진을 선택해주세요\n',
-                          style: TextStyle(fontSize: 16, color: Color(0xFF6B4FBB), fontWeight: FontWeight.w700),
-                        ),
-                        TextSpan(
-                          text: 'JPG, PNG 파일',
-                          style: TextStyle(color: Colors.black87),
-                        ),
-                      ],
-                    ),
+                children: [
+                  Image.asset(
+                    'asset/image/solar_camera-bold.png',
+                    width: 67,
+                    height: 67,
+                    color: const Color(0xFF8B7ED8),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '유품 사진을 선택해주세요',
+                    style: TextStyle(fontSize: 15, color: Colors.grey[600], fontWeight: FontWeight.w500),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 8),
-                  Chip(
-                    label: Text('파일 선택', style: TextStyle(color: Colors.white)),
-                    backgroundColor: Color(0xFFBB9DF7),
+                  const SizedBox(height: 4),
+                  Text(
+                    'JPG, PNG 파일',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B7ED8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '파일 선택',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
