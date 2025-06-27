@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:neverland_flutter/screen/keepsake_page.dart';
 import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
-//import 'package:neverland_flutter/screen/photo_album_page.dart';
+import 'package:neverland_flutter/screen/photo_album_page.dart';
 
 
 class MainPage extends StatefulWidget {
@@ -259,10 +259,10 @@ class _MainPageState extends State<MainPage> {
                                 padding: const EdgeInsets.only(right: 8),
                                 child: GestureDetector(
                                   onTap: () {
-                                    //Navigator.push(
-                                    //  context,
-                                    //  MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
-                                   // );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
+                                    );
                                   },
                                   child: Container(
                                     width: 100,
