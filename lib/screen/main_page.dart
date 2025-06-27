@@ -6,9 +6,10 @@ import 'package:neverland_flutter/screen/letter_write_page.dart';
 import 'package:neverland_flutter/screen/chat_page.dart';
 import 'package:neverland_flutter/screen/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:neverland_flutter/screen/keepsake_page.dart';
 import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:neverland_flutter/screen/photo_album_page.dart';
+//import 'package:neverland_flutter/screen/photo_album_page.dart';
 
 
 class MainPage extends StatefulWidget {
@@ -258,10 +259,10 @@ class _MainPageState extends State<MainPage> {
                                 padding: const EdgeInsets.only(right: 8),
                                 child: GestureDetector(
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
-                                    );
+                                    //Navigator.push(
+                                    //  context,
+                                    //  MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
+                                   // );
                                   },
                                   child: Container(
                                     width: 100,
@@ -280,53 +281,62 @@ class _MainPageState extends State<MainPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Color(0xFFE0D7FF)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Image.asset('asset/image/box.png', width: 32, height: 32),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '유품 기록',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  '시계, 반지, 책 등 특별한 유품들의 이야기를 기록합니다.',
-                                  style: TextStyle(
-                                    fontFamily: 'Pretendard',
-                                    fontSize: 13,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => KeepsakeScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Color(0xFFE0D7FF)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
                             ),
-                          ),
-                          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black38),
-                        ],
+                          ],
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Image.asset('asset/image/box.png', width: 32, height: 32),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '유품 기록',
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    '시계, 반지, 책 등 특별한 유품들의 이야기를 기록합니다.',
+                                    style: TextStyle(
+                                      fontFamily: 'Pretendard',
+                                      fontSize: 13,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black38),
+                          ],
+                        ),
                       ),
                     ),
+
                     const SizedBox(height: 24),
                     Center(
                       child: TextButton(
