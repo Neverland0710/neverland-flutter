@@ -277,49 +277,6 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('카테고리', style: TextStyle(color: Color(0xFF6B4FBB), fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedCategory = '사진 앨범';
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectedCategory == '사진 앨범' ? const Color(0xFFBB9DF7) : const Color(0xFFEDE4FF),
-                      ),
-                      child: Text(
-                        '사진 앨범',
-                        style: TextStyle(
-                          color: _selectedCategory == '사진 앨범' ? Colors.white : const Color(0xFFBB9DF7),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedCategory = '유품 기록';
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectedCategory == '유품 기록' ? const Color(0xFFBB9DF7) : const Color(0xFFEDE4FF),
-                      ),
-                      child: Text(
-                        '유품 기록',
-                        style: TextStyle(
-                          color: _selectedCategory == '유품 기록' ? Colors.white : const Color(0xFFBB9DF7),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
