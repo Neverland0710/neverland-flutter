@@ -11,6 +11,15 @@ class Letter {
     this.replyContent,        // ✅ 선택적 값
   });
 
+  factory Letter.fromJson(Map<String, dynamic> json) {
+    return Letter(
+      title: json['title'] ?? '',
+      content: json['content'] ?? '',
+      createdAt: DateTime.parse(json['createdAt']),
+      replyContent: json['replyContent'],
+    );
+  }
+
   /// 하루 뒤 동작 유물 확인
   /// 📌 현재는 테스트용으로 3초 이후 동작 처리
   bool get isArrived {
