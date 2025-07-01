@@ -1,6 +1,9 @@
+// Flutter와 Material Design 위젯을 사용하기 위한 패키지 임포트
 import 'package:flutter/material.dart';
+// CodeInputScreen으로 이동하기 위해 필요한 파일 임포트
 import 'package:neverland_flutter/screen/code_input_screen.dart';
 
+// 약관 동의 화면을 위한 StatefulWidget 정의
 class TermsAgreementScreen extends StatefulWidget {
   const TermsAgreementScreen({super.key});
 
@@ -8,14 +11,21 @@ class TermsAgreementScreen extends StatefulWidget {
   State<TermsAgreementScreen> createState() => _TermsAgreementScreenState();
 }
 
+// TermsAgreementScreen의 상태를 관리하는 State 클래스
 class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
+  // 모든 약관 동의 여부를 나타내는 플래그
   bool allChecked = false;
+  // 서비스 이용약관 동의 여부
   bool termsChecked = false;
+  // 개인정보 처리방침 동의 여부
   bool privacyChecked = false;
+  // 마케팅 정보 수신 동의 여부
   bool marketingChecked = false;
 
+  // "모두 동의" 체크박스를 토글하는 함수
   void _toggleAll(bool? value) {
     setState(() {
+      // 모든 체크박스의 상태를 value로 설정 (null 체크 포함)
       allChecked = value ?? false;
       termsChecked = allChecked;
       privacyChecked = allChecked;
@@ -23,21 +33,25 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
     });
   }
 
+  // 개별 체크박스 상태 변경 시 "모두 동의" 상태를 업데이트하는 함수
   void _updateAllCheckStatus() {
     setState(() {
+      // 모든 개별 체크박스가 true일 때만 allChecked를 true로 설정
       allChecked = termsChecked && privacyChecked && marketingChecked;
     });
   }
 
+  // 약관 내용을 다이얼로그로 보여주는 함수
   void _showTermsDialog(String title, String content) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(title),
+        title: Text(title), // 다이얼로그 제목
         content: SingleChildScrollView(
-          child: Text(content),
+          child: Text(content), // 약관 내용을 스크롤 가능하게 표시
         ),
         actions: [
+          // 다이얼로그 닫기 버튼
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
@@ -50,41 +64,42 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFFFFFFF), // 배경색을 흰색으로 설정
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFFFF),
-        elevation: 0,
-        leading: const BackButton(color: Colors.black),
+        backgroundColor: const Color(0xFFFFFFFF), // AppBar 배경색
+        elevation: 0, // AppBar 그림자 제거
+        leading: const BackButton(color: Colors.black), // 뒤로 가기 버튼
         title: const Text(
-          '약관 동의',
+          '약관 동의', // AppBar 제목
           style: TextStyle(
-            fontFamily: 'Pretendard',
+            fontFamily: 'Pretendard', // 폰트 설정
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
-        centerTitle: true,
+        centerTitle: true, // 제목 중앙 정렬
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0), // 좌우 패딩
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start, // 좌측 정렬
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 16), // 상단 여백
             const Text(
-              '서비스의 원활한 이용을 위해\n약관에 동의해주세요',
+              '서비스의 원활한 이용을 위해\n약관에 동의해주세요', // 안내 문구
               style: TextStyle(
                 fontFamily: 'Pretendard',
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 32), // 문구와 체크박스 간 여백
 
+            // "모두 동의" 체크박스
             CheckboxListTile(
               value: allChecked,
-              onChanged: _toggleAll,
+              onChanged: _toggleAll, // 체크 시 모든 체크박스 상태 변경
               title: const Text(
                 '네, 모두 동의합니다.',
                 style: TextStyle(
@@ -93,21 +108,23 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                   fontSize: 16,
                 ),
               ),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading, // 체크박스 왼쪽 배치
+              contentPadding: EdgeInsets.zero, // 패딩 제거
             ),
-            const Divider(),
+            const Divider(), // 구분선
 
+            // 서비스 이용약관 체크박스
             _buildAgreementItem(
               checked: termsChecked,
               onChanged: (val) {
                 setState(() {
-                  termsChecked = val!;
-                  _updateAllCheckStatus();
+                  termsChecked = val!; // 체크 상태 업데이트
+                  _updateAllCheckStatus(); // "모두 동의" 상태 갱신
                 });
               },
               title: '서비스 이용약관 동의 (필수)',
               onViewPressed: () {
+                // 약관 내용 다이얼로그 표시
                 _showTermsDialog(
                   '서비스 이용약관',
                   '''
@@ -124,6 +141,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
               },
             ),
 
+            // 개인정보 처리방침 체크박스
             _buildAgreementItem(
               checked: privacyChecked,
               onChanged: (val) {
@@ -150,6 +168,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
               },
             ),
 
+            // 마케팅 정보 수신 동의 체크박스
             _buildAgreementItem(
               checked: marketingChecked,
               onChanged: (val) {
@@ -176,14 +195,16 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
               },
             ),
 
-            const Spacer(),
+            const Spacer(), // 남은 공간 채우기
 
+            // 동의 완료 버튼
             SizedBox(
-              width: double.infinity,
+              width: double.infinity, // 버튼 너비를 전체로 설정
               height: 60,
               child: ElevatedButton(
                 onPressed: (termsChecked && privacyChecked)
                     ? () {
+                  // 필수 약관 동의 시 다음 화면으로 이동
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -191,10 +212,11 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                     ),
                   );
                 }
-                    : null,
+                    : null, // 필수 약관 미동의 시 버튼 비활성화
                 style: ButtonStyle(
                   backgroundColor: MaterialStateProperty.resolveWith<Color>(
                         (Set<MaterialState> states) {
+                      // 버튼 비활성화 시 회색, 활성화 시 보라색
                       if (states.contains(MaterialState.disabled)) {
                         return const Color(0xFFD3D3D3);
                       }
@@ -203,7 +225,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
                   ),
                   shape: MaterialStateProperty.all(
                     RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12), // 버튼 모서리 둥글게
                     ),
                   ),
                 ),
@@ -219,22 +241,23 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
               ),
             ),
 
-            const SizedBox(height: 80),
+            const SizedBox(height: 80), // 하단 여백
           ],
         ),
       ),
     );
   }
 
+  // 약관 항목 UI를 생성하는 헬퍼 함수
   Widget _buildAgreementItem({
-    required bool checked,
-    required Function(bool?) onChanged,
-    required String title,
-    required VoidCallback onViewPressed,
+    required bool checked, // 체크박스 상태
+    required Function(bool?) onChanged, // 체크 시 호출되는 콜백
+    required String title, // 항목 제목
+    required VoidCallback onViewPressed, // "보기" 버튼 클릭 시 호출
   }) {
     return Row(
       children: [
-        Checkbox(value: checked, onChanged: onChanged),
+        Checkbox(value: checked, onChanged: onChanged), // 체크박스
         Expanded(
           child: Text(
             title,
@@ -244,6 +267,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
             ),
           ),
         ),
+        // 약관 내용 보기 버튼
         TextButton(
           onPressed: onViewPressed,
           child: const Text(
@@ -251,7 +275,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
             style: TextStyle(
               fontFamily: 'Pretendard',
               fontSize: 14,
-              color: Color(0xFF173560),
+              color: Color(0xFF173560), // 버튼 텍스트 색상
             ),
           ),
         ),
