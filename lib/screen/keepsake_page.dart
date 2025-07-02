@@ -64,23 +64,32 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
   /// 서버에서 특정 유품을 삭제하는 함수
   /// [imageUrl] - 삭제할 유품의 이미지 파일명
   Future<void> _deleteKeepsake(String imageUrl) async {
-    // 삭제 API 엔드포인트 구성 (쿼리 파라미터로 user_id와 imageUrl 전달)
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id');
+
+    if (authKeyId == null || authKeyId.isEmpty) {
+      print('❌ 인증 키가 없습니다.');
+      return;
+    }
+
     final uri = Uri.parse('http://192.168.219.68:8086/keepsake/delete')
         .replace(queryParameters: {
-      'user_id': 'a27c90b0-559d-11f0-80d3-0242c0a81002',
+      'auth_key_id': authKeyId,
       'imageUrl': imageUrl,
     });
 
-    // DELETE 요청 전송
-    final response = await http.delete(uri);
+    try {
+      final response = await http.delete(uri);
 
-    // 삭제 성공 시 목록 새로고침, 실패 시 에러 로그 출력
-    if (response.statusCode == 200) {
-      print('✅ 유품 삭제 성공');
-      fetchKeepsakes(); // 삭제 후 목록 새로고침
-    } else {
-      print('❌ 유품 삭제 실패: ${response.statusCode}');
-      print(response.body);
+      if (response.statusCode == 200) {
+        print('✅ 유품 삭제 성공');
+        fetchKeepsakes(); // 삭제 후 목록 새로고침
+      } else {
+        print('❌ 유품 삭제 실패: ${response.statusCode}');
+        print(response.body);
+      }
+    } catch (e) {
+      print('❌ 삭제 요청 중 예외 발생: $e');
     }
   }
 
@@ -496,136 +505,105 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
   void _showKeepsakeModal(BuildContext context, KeepsakeItem item) {
     showDialog(
       context: context,
-      barrierDismissible: true, // 바깥 영역 탭으로 닫기 가능
-      builder: (BuildContext context) {
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
         return Dialog(
-          insetPadding: EdgeInsets.symmetric(horizontal: 20),
-          backgroundColor: Colors.transparent,
-          child: Center(
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10)),
-                ],
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 닫기 버튼 (오른쪽 상단)
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Icon(Icons.close, color: Colors.grey[600]),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
               ),
-              child: Stack(
-                children: [
-                  // 닫기 버튼 (우상단)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey[600]),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  // 모달 내용
-                  Padding(
-                    padding: EdgeInsets.only(top: 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 상단 영역: 이미지 + 제목/연도
-                        Row(
-                          children: [
-                            // 유품 이미지 또는 기본 아이콘 박스
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Color(0xFFE6E0F8), // 연보라 배경 (이미지 없을 경우 보임)
-                                borderRadius: BorderRadius.circular(12), // 둥근 모서리
-                              ),
-                              child: item.imageUrl != null
-                              // 이미지가 있을 경우 → 네트워크에서 불러오기
-                                  ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12), // 이미지도 둥글게 잘라줌
-                                  child: Image.network(
-                                    item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
-                                    fit: BoxFit.cover,
-                                  )
-                              )
-                              // 이미지가 없을 경우 → 기본 아이콘
-                                  : Icon(
-                                Icons.inventory_2_outlined, // 상자 모양 아이콘
-                                color: Color(0xFF8B7ED8),    // 보라색
-                                size: 30,
-                              ),
+
+              // 내용 스크롤 가능 영역
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 이미지 + 제목/연도
+                      Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE6E0F8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-
-                            SizedBox(width: 15), // 이미지와 텍스트 사이 간격
-
-                            // 제목 + 연도 정보
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 왼쪽 정렬
-                                children: [
-                                  // 유품 제목
-                                  Text(
-                                    item.title,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4), // 제목과 연도 사이 간격
-
-                                  // 유품 취득 연도
-                                  Text(
-                                    item.year,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-                        // 유품 설명 섹션
-                        Text('유품 설명', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF8B7ED8))),
-                        SizedBox(height: 12),
-                        Text(item.description, style: TextStyle(fontSize: 14, height: 1.5)),
-                        SizedBox(height: 20),
-                        // 소중한 이야기 섹션
-                        Text('소중한 이야기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF8B7ED8))),
-                        SizedBox(height: 12),
-                        Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Color(0xFFF8F6FF),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border(
-                              left: BorderSide(color: Color(0xFFA688FA), width: 3), // 왼쪽 보라색 테두리
+                            child: item.imageUrl != null
+                                ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(item.imageUrl!, fit: BoxFit.cover),
+                            )
+                                : const Icon(Icons.inventory_2_outlined, color: Color(0xFF8B7ED8), size: 30),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item.title,
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                                const SizedBox(height: 4),
+                                Text(item.year, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                              ],
                             ),
                           ),
-                          child: Text(item.story, style: TextStyle(fontSize: 14, height: 1.5)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 설명
+                      const Text('유품 설명',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF8B7ED8))),
+                      const SizedBox(height: 12),
+                      Text(item.description, style: const TextStyle(fontSize: 14, height: 1.5)),
+
+                      const SizedBox(height: 20),
+
+                      // 소중한 이야기
+                      const Text('소중한 이야기',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF8B7ED8))),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8F6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: const Border(left: BorderSide(color: Color(0xFFA688FA), width: 3)),
                         ),
-                        SizedBox(height: 12),
-                        // 등록 날짜 (우측 정렬)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(item.date, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                        ),
-                      ],
-                    ),
+                        child: Text(item.story, style: const TextStyle(fontSize: 14, height: 1.5)),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // 등록 날짜
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(item.date, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         );
       },
     );
   }
+
 }
 
 /// 유품 데이터를 저장하는 모델 클래스

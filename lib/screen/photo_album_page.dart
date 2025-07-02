@@ -81,16 +81,28 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
   /// [photo] 삭제할 사진 데이터
   void _deletePhoto(Map<String, dynamic> photo) async {
     try {
-      final imagePath = photo['imagePath']; // ✅ 서버가 제공한 원본 상대 경로 사용
+      final imagePath = photo['imagePath']; // 서버에서 받은 상대 경로
 
       if (imagePath == null || imagePath.isEmpty) {
         print('❌ imagePath가 없습니다.');
         return;
       }
 
-      final response = await http.delete(
-        Uri.parse('http://192.168.219.68:8086/photo/delete?imageUrl=${Uri.encodeComponent(imagePath)}'),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final authKeyId = prefs.getString('auth_key_id');
+
+      if (authKeyId == null || authKeyId.isEmpty) {
+        print('❌ auth_key_id가 없습니다.');
+        return;
+      }
+
+      final uri = Uri.parse('http://192.168.219.68:8086/photo/delete')
+          .replace(queryParameters: {
+        'auth_key_id': authKeyId,
+        'imageUrl': imagePath,
+      });
+
+      final response = await http.delete(uri);
 
       if (response.statusCode == 200) {
         setState(() {
@@ -99,11 +111,13 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
         print('✅ 삭제 완료');
       } else {
         print('❌ 삭제 실패: ${response.statusCode}');
+        print(response.body);
       }
     } catch (e) {
       print('❌ 삭제 중 오류 발생: $e');
     }
   }
+
 
   /// 🔍 사진 상세보기 다이얼로그를 표시하는 함수
   /// [context] BuildContext
@@ -111,52 +125,69 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
   void _showPhotoDetail(BuildContext context, Map<String, dynamic> photo) {
     showDialog(
       context: context,
-      builder: (_) {
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 📷 사진 이미지 영역
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    image: DecorationImage(
-                      image: NetworkImage(photo['imageUrl'] ?? ''),
-                      fit: BoxFit.cover,
-                    ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 닫기 버튼 (오른쪽 상단)
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Icon(Icons.close, color: Colors.grey[600]),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
+              ),
+              // 내용 스크롤 영역
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 사진 이미지
+                      Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          image: DecorationImage(
+                            image: NetworkImage(photo['imageUrl'] ?? ''),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // 제목
+                      Text(
+                        photo['title'] ?? '',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      // 날짜
+                      Text(
+                        photo['date'] ?? '',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 12),
+                      // 설명
+                      Text(
+                        photo['description'] ?? '',
+                        style: const TextStyle(fontSize: 15, height: 1.5),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                // 📝 사진 제목
-                Text(
-                  photo['title'] ?? '',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                // 📅 사진 날짜
-                Text(
-                  photo['date'] ?? '',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                // 📄 사진 설명
-                Text(
-                  photo['description'] ?? '',
-                  style: const TextStyle(fontSize: 15),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
   }
+
 
   /// 🚀 위젯 초기화 시 호출되는 함수
   @override
