@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 // 🌐 HTTP 통신용 import
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 📤 사진 업로드 페이지
 /// 사용자가 사진을 선택하고 제목, 설명, 날짜 등을 입력해서 서버에 업로드하는 페이지
@@ -93,53 +94,56 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
 
   /// 📤 서버에 사진을 업로드하는 함수
   void _uploadToServer() async {
-    // 🔍 사진 선택 여부 검증
     if (_selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("사진을 선택해주세요."))
-      );
+          const SnackBar(content: Text("사진을 선택해주세요.")));
       return;
     }
 
-    // 🌐 서버 업로드 API 엔드포인트 설정
+    // 🔑 SharedPreferences에서 auth_key_id 가져오기
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id');
+
+    if (authKeyId == null || authKeyId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("인증 정보가 없습니다.")));
+      return;
+    }
+
     final uri = Uri.parse('http://192.168.219.68:8086/photo/upload');
     final request = http.MultipartRequest('POST', uri);
 
-    // 수정: 여러 장 업로드
+    // 📎 이미지 파일 추가 (멀티 업로드)
     for (var i = 0; i < _selectedImages.length; i++) {
-      final imageFile = await http.MultipartFile.fromPath('file', _selectedImages[i].path);
+      final imageFile =
+      await http.MultipartFile.fromPath('file', _selectedImages[i].path);
       request.files.add(imageFile);
     }
 
-    // 📝 추가 데이터 필드들 설정
-    request.fields['auth_key_id'] = 'a27c90b0-559d-11f0-80d3-0242c0a81002'; // 사용자 인증 키
-    request.fields['title'] = _titleController.text; // 사진 제목
-    request.fields['description'] = _descriptionController.text; // 사진 설명
-    request.fields['photo_date'] = _selectedDate!.toIso8601String().split('T')[0]; // 날짜 (YYYY-MM-DD 형식)
+    // 📋 요청 필드 추가
+    request.fields['auth_key_id'] = authKeyId;
+    request.fields['title'] = _titleController.text;
+    request.fields['description'] = _descriptionController.text;
+    request.fields['photo_date'] =
+    _selectedDate!.toIso8601String().split('T')[0];
 
     try {
-      // 🚀 서버에 업로드 요청 전송
       final response = await request.send();
 
       if (response.statusCode == 200) {
-        // ✅ 업로드 성공
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("✅ 업로드 성공"))
-        );
-        Navigator.pop(context, true); // 이전 페이지로 돌아가면서 성공 결과 전달
+            const SnackBar(content: Text("✅ 업로드 성공")));
+        Navigator.pop(context, true);
       } else {
-        // ❌ 업로드 실패
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("❌ 업로드 실패"))
-        );
+            SnackBar(content: Text("❌ 업로드 실패: ${response.statusCode}")));
       }
     } catch (e) {
-      // ❌ 네트워크 오류
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ 서버 오류: $e"))
-      );
+          SnackBar(content: Text("❌ 서버 오류: $e")));
     }
   }
+
 
   /// 🎨 메인 UI 빌드 함수
   @override

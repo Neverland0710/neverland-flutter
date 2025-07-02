@@ -258,33 +258,35 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
   /// @param imageFile 업로드할 로컬 이미지 파일
   /// @return 성공 시 '성공' 문자열 반환, 실패 시 null 반환
   Future<String?> _uploadImageToServer(File imageFile) async {
-    // ✅ 고정된 auth_key_id 사용
-    final authKeyId = 'a27c90b0-559d-11f0-80d3-0242c0a81002';
+    // ✅ SharedPreferences에서 authKeyId 가져오기
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id');
 
-    // ✅ 2. 서버 주소 설정 (multipart POST)
+    if (authKeyId == null || authKeyId.isEmpty) {
+      print('❌ auth_key_id 가 없습니다.');
+      return null;
+    }
+
     final uri = Uri.parse('http://192.168.219.68:8086/keepsake/upload');
     final request = http.MultipartRequest('POST', uri);
 
-    // ✅ 3. 텍스트 폼 필드 데이터 설정
-    request.fields['auth_key_id'] = authKeyId;                            // 사용자 인증 키
-    request.fields['item_name'] = _titleController.text;                  // 유품 이름
-    request.fields['description'] = _descriptionController.text;          // 유품 설명
-    request.fields['acquisition_period'] = _periodController.text;        // 구입/제작 시기
-    request.fields['special_story'] = _storyController.text;              // 특별한 이야기
-    request.fields['estimated_value'] = _valueController.text.isNotEmpty
-        ? _valueController.text                                            // 입력값 있으면 그대로
-        : '0';                                                             // 없으면 0
+    // ✅ 텍스트 데이터 설정
+    request.fields['auth_key_id'] = authKeyId;
+    request.fields['item_name'] = _titleController.text;
+    request.fields['description'] = _descriptionController.text;
+    request.fields['acquisition_period'] = _periodController.text;
+    request.fields['special_story'] = _storyController.text;
+    request.fields['estimated_value'] =
+    _valueController.text.isNotEmpty ? _valueController.text : '0';
 
-    // ✅ 4. 이미지 파일을 multipart로 추가
+    // ✅ 이미지 파일 첨부
     request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
-    // ✅ 5. 요청 보내기
+    // ✅ 전송
     final response = await request.send();
 
-    // ✅ 6. 응답 코드 확인
     if (response.statusCode == 200) {
       print('✅ 업로드 성공');
-      //Navigator.pop(context, true);
       return '성공';
     } else {
       print('❌ 업로드 실패: ${response.statusCode}');

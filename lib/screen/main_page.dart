@@ -25,144 +25,106 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   // 데이터 리스트들
-  List<Letter> _letters = []; // 편지 목록
+
   List<Map<String, dynamic>> _photos = []; // 사진 목록
-  bool _hasArrivedLetter = false; // 도착한 편지 여부
+
 
   // 통계 카운트들
   int _photoCount = 0; // 저장된 사진 개수
   int _replyLetterCount = 0; // 답장온 편지 개수
   int _keepsakeCount = 0; // 유품 기록 개수
 
-  /// 서버에서 편지 목록을 불러오는 함수
-  void _loadLetters() async {
-    try {
-      // HTTP GET 요청으로 편지 목록 조회
-      final response = await http.get(
-        Uri.parse(
-          'http://192.168.219.68:8086/letter/list?auth_key_id=a27c90b0-559d-11f0-80d3-0242c0a81002',
-        ),
-      );
 
-      if (response.statusCode == 200) {
-        // JSON 응답을 파싱하여 Letter 객체 리스트로 변환
-        final List<dynamic> jsonList = jsonDecode(response.body);
-        final letters = jsonList.map((e) => Letter.fromJson(e)).toList();
 
-        setState(() {
-          _letters = letters;
-          // 도착한 편지(답장받은 편지)만 카운트
-          _replyLetterCount = letters.where((l) => l.isArrived == true).length;
-          // 도착한 편지가 있는지 확인
-          _hasArrivedLetter = _replyLetterCount > 0;
-        });
-      } else {
-        print('❌ 편지 로드 실패: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ 편지 로딩 중 에러 발생: $e');
+
+  Future<void> _loadStatistics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId == null || userId.isEmpty) {
+      print('❌ userId가 없습니다.');
+      return;
     }
-  }
-
-  /// 서버에서 유품 목록을 불러오는 함수
-  void _loadKeepsakes() async {
-    const authKeyId = 'a27c90b0-559d-11f0-80d3-0242c0a81002'; // ✅ 고정값만 사용
 
     try {
       final response = await http.get(
-        Uri.parse(
-          'http://192.168.219.68:8086/keepsake/list?auth_key_id=$authKeyId',
-        ),
+        Uri.parse('http://192.168.219.68:8086/statistics/get?userId=$userId'),
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+
         setState(() {
-          _keepsakeCount = jsonList.length;
+          _photoCount = data['photoCount'] ?? 0;
+          _replyLetterCount = data['sentLetterCount'] ?? 0;
+          _keepsakeCount = data['keepsakeCount'] ?? 0;
         });
       } else {
-        print('❌ 유품 로드 실패: ${response.statusCode}');
+        print('❌ 통계 불러오기 실패: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ 유품 로딩 중 에러 발생: $e');
+      print('❌ 통계 요청 중 오류 발생: $e');
     }
   }
+
+
 
   /// 위젯 초기화 시 실행되는 함수
   @override
   void initState() {
     super.initState();
-    // 페이지 로드 시 모든 데이터 불러오기
-    _loadLetters();
-    _loadPhotos();
-    _loadKeepsakes();
+    _loadStatistics();   // ✅ 통계 수치만 한 번에 불러오기
+
+    _loadPhotos();       // 🖼️ 사진 썸네일도 필요 시
   }
 
-  /// 위젯 의존성이 변경될 때 실행되는 함수
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 편지 페이지에서 돌아왔을 때 편지 목록 새로고침
-    if (widget.fromLetter) {
-      _loadLetters();
-    }
-  }
 
-  /// 서버에서 사진 목록을 불러오는 함수
+
+  /// 서버에서 사진 썸네일 목록을 불러오는 함수
   void _loadPhotos() async {
     try {
-      // HTTP GET 요청으로 사진 목록 조회
+      final prefs = await SharedPreferences.getInstance();
+      final authKeyId = prefs.getString('auth_key_id');
+
+      if (authKeyId == null || authKeyId.isEmpty) {
+        print('❌ auth_key_id가 없습니다.');
+        return;
+      }
+
       final response = await http.get(
-        Uri.parse(
-          'http://192.168.219.68:8086/photo/list?auth_key_id=a27c90b0-559d-11f0-80d3-0242c0a81002',
-        ),
+        Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=$authKeyId'),
       );
 
       print('📡 사진 응답 상태코드: ${response.statusCode}');
       print('📦 응답 바디: ${response.body}');
 
       if (response.statusCode == 200) {
-        // JSON 응답을 파싱
         final List<dynamic> jsonList = jsonDecode(response.body);
         print('🧾 받은 JSON 개수: ${jsonList.length}');
 
         setState(() {
-          // 사진 데이터를 Map으로 변환하면서 유효한 이미지만 필터링
           _photos = jsonList
               .map((e) {
-                final rawUrl = e['imageUrl'];
-                print('🖼️ 원본 URL: $rawUrl');
+            final rawUrl = e['imagePath'];
+            if (rawUrl == null || rawUrl.toString().contains('FILE_SAVE_FAILED')) {
+              return null;
+            }
 
-                // 잘못된 이미지 URL은 제외
-                if (rawUrl == null ||
-                    rawUrl.toString().contains('FILE_SAVE_FAILED')) {
-                  print('🚫 무시된 이미지: $rawUrl');
-                  return null;
-                }
+            final completeUrl = rawUrl.toString().startsWith('http')
+                ? rawUrl
+                : 'http://192.168.219.68:8086$rawUrl';
 
-                // 상대 경로인 경우 완전한 URL로 변환
-                final completeUrl = rawUrl.toString().startsWith('http')
-                    ? rawUrl
-                    : 'http://192.168.219.68:8086$rawUrl';
-
-                print('✅ 최종 이미지 URL: $completeUrl');
-
-                // 사진 정보를 Map으로 반환
-                return {
-                  'id': e['id'],
-                  'title': e['title'],
-                  'description': e['description'],
-                  'date': e['date'],
-                  'imageUrl': completeUrl,
-                };
-              })
+            return {
+              'id': e['id'],
+              'title': e['title'],
+              'description': e['description'],
+              'date': e['date'],
+              'imageUrl': completeUrl,
+            };
+          })
               .where((e) => e != null)
               .cast<Map<String, dynamic>>()
               .toList();
-
-          // 유효한 사진 개수 업데이트
-          _photoCount = _photos.length;
-          print('📸 저장된 사진 수: $_photoCount');
         });
       } else {
         print('❌ 메인에서 사진 로드 실패: ${response.statusCode}');
@@ -171,6 +133,8 @@ class _MainPageState extends State<MainPage> {
       print('❌ 메인에서 사진 로드 에러: $e');
     }
   }
+
+
 
   /// 로그아웃 확인 다이얼로그 표시
   void _confirmLogout() {
@@ -242,8 +206,12 @@ class _MainPageState extends State<MainPage> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
+          (route) => false,
     );
+  }
+  void _loadKeepsakes() async {
+    await _loadStatistics();  // 비동기로 통계만 다시 불러오기
+    if (mounted) setState(() {});  // UI 갱신
   }
 
   /// 메인 UI 빌드 함수
@@ -294,7 +262,7 @@ class _MainPageState extends State<MainPage> {
                       title: '실시간 대화',
                       subtitle: '언제든 대화해보세요',
                       description:
-                          'AI 기술을 통해 고인의 말투와 성격을 반영한 자연스러운 대화를 나눌 수 있습니다.',
+                      'AI 기술을 통해 고인의 말투와 성격을 반영한 자연스러운 대화를 나눌 수 있습니다.',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -365,7 +333,8 @@ class _MainPageState extends State<MainPage> {
                         );
                         // 페이지에서 돌아왔을 때 유품 개수 새로고침
                         if (result == true) {
-                          _loadKeepsakes();
+                          _loadPhotos();       // 썸네일 다시 로드
+                          _loadStatistics();   // 통계 다시 로드
                         }
                       },
                       child: Container(
@@ -432,156 +401,156 @@ class _MainPageState extends State<MainPage> {
                             // 📜 사진 미리보기 박스 섹션 (가로 스크롤 가능한 형태)
                             SingleChildScrollView(
                               scrollDirection:
-                                  Axis.horizontal, // ➡️ 수평 스크롤 가능하게 설정
+                              Axis.horizontal, // ➡️ 수평 스크롤 가능하게 설정
                               child: Row(
                                 children: _photos.isEmpty
-                                    // 📦 사진이 없을 경우 - 기본 박스 3개 생성
+                                // 📦 사진이 없을 경우 - 기본 박스 3개 생성
                                     ? List.generate(3, (index) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 8,
-                                          ), // 👉 박스 사이 간격
-                                          child: GestureDetector(
-                                            // 첫 번째 박스만 탭 가능 (앨범 이동)
-                                            onTap: index == 0
-                                                ? () async {
-                                                    final result =
-                                                        await Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder: (context) =>
-                                                                const PhotoAlbumPage(),
-                                                          ),
-                                                        );
-                                                    // ✅ 앨범에서 사진 추가 후 새로고침
-                                                    if (result == true) {
-                                                      _loadPhotos(); // 서버에서 다시 불러오기
-                                                      setState(() {}); // UI 갱신
-                                                    }
-                                                  }
-                                                : null,
-                                            child: Container(
-                                              width: 100,
-                                              height: 100, // 📏 박스 크기
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFFF1EBFF,
-                                                ), // 🎨 연보라 배경
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      12,
-                                                    ), // 🔘 모서리 둥글게
-                                              ),
-                                              child: const Icon(
-                                                Icons.add,
-                                                color: Color(0xFFBB9DF7),
-                                                size: 28,
-                                              ), // ➕ 아이콘
-                                            ),
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                      right: 8,
+                                    ), // 👉 박스 사이 간격
+                                    child: GestureDetector(
+                                      // 첫 번째 박스만 탭 가능 (앨범 이동)
+                                      onTap: index == 0
+                                          ? () async {
+                                        final result =
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                            const PhotoAlbumPage(),
                                           ),
                                         );
-                                      })
+                                        // ✅ 앨범에서 사진 추가 후 새로고침
+                                        if (result == true) {
+                                          _loadPhotos(); // 서버에서 다시 불러오기
+                                          setState(() {}); // UI 갱신
+                                        }
+                                      }
+                                          : null,
+                                      child: Container(
+                                        width: 100,
+                                        height: 100, // 📏 박스 크기
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFFF1EBFF,
+                                          ), // 🎨 연보라 배경
+                                          borderRadius:
+                                          BorderRadius.circular(
+                                            12,
+                                          ), // 🔘 모서리 둥글게
+                                        ),
+                                        child: const Icon(
+                                          Icons.add,
+                                          color: Color(0xFFBB9DF7),
+                                          size: 28,
+                                        ), // ➕ 아이콘
+                                      ),
+                                    ),
+                                  );
+                                })
                                     :
-                                      // 🖼️ 사진이 있는 경우 - 사진 썸네일 + 추가 버튼
-                                      [
-                                        ...List.generate(_photos.length, (
-                                          index,
-                                        ) {
-                                          final photo =
-                                              _photos[index]; // 📸 각 사진 데이터
-                                          return Padding(
-                                            padding: const EdgeInsets.only(
-                                              right: 8,
-                                            ), // 👉 사진 사이 간격
-                                            child: GestureDetector(
-                                              onTap: () async {
-                                                // 📂 사진 클릭 시 앨범으로 이동
-                                                final result =
-                                                    await Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            const PhotoAlbumPage(),
-                                                      ),
-                                                    );
-                                                if (result == true) {
-                                                  _loadPhotos(); // 서버에서 다시 불러오기
-                                                  setState(() {}); // UI 갱신
-                                                }
-                                              },
-                                              child: ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      12,
-                                                    ), // 🔘 모서리 둥글게
-                                                child: Image.network(
-                                                  photo['imageUrl'], // 🌐 이미지 URL
-                                                  width: 100,
-                                                  height: 100,
-                                                  fit:
-                                                      BoxFit.cover, // 이미지 꽉 채우기
-                                                  errorBuilder:
-                                                      (
-                                                        context,
-                                                        error,
-                                                        stackTrace,
-                                                      ) => Container(
-                                                        color: Colors
-                                                            .grey[300], // ❌ 로드 실패 시 회색 박스
-                                                        width: 100,
-                                                        height: 100,
-                                                        child: const Icon(
-                                                          Icons.broken_image,
-                                                          color: Colors.grey,
-                                                        ), // 🧱 대체 아이콘
-                                                      ),
-                                                ),
-                                              ),
+                                // 🖼️ 사진이 있는 경우 - 사진 썸네일 + 추가 버튼
+                                [
+                                  ...List.generate(_photos.length, (
+                                      index,
+                                      ) {
+                                    final photo =
+                                    _photos[index]; // 📸 각 사진 데이터
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 8,
+                                      ), // 👉 사진 사이 간격
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          // 📂 사진 클릭 시 앨범으로 이동
+                                          final result =
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                              const PhotoAlbumPage(),
                                             ),
                                           );
-                                        }),
-
-                                        // ➕ 마지막에 추가 버튼 (항상 보이게)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 8,
-                                          ), // 간격 유지
-                                          child: GestureDetector(
-                                            onTap: () async {
-                                              // 📂 + 버튼 탭 → 사진 앨범 페이지 이동
-                                              final result =
-                                                  await Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          const PhotoAlbumPage(),
-                                                    ),
-                                                  );
-                                              if (result == true) {
-                                                _loadPhotos(); // 갱신
-                                                setState(() {}); // UI 갱신
-                                              }
-                                            },
-                                            child: Container(
+                                          if (result == true) {
+                                            _loadPhotos(); // 서버에서 다시 불러오기
+                                            setState(() {}); // UI 갱신
+                                          }
+                                        },
+                                        child: ClipRRect(
+                                          borderRadius:
+                                          BorderRadius.circular(
+                                            12,
+                                          ), // 🔘 모서리 둥글게
+                                          child: Image.network(
+                                            photo['imageUrl'], // 🌐 이미지 URL
+                                            width: 100,
+                                            height: 100,
+                                            fit:
+                                            BoxFit.cover, // 이미지 꽉 채우기
+                                            errorBuilder:
+                                                (
+                                                context,
+                                                error,
+                                                stackTrace,
+                                                ) => Container(
+                                              color: Colors
+                                                  .grey[300], // ❌ 로드 실패 시 회색 박스
                                               width: 100,
                                               height: 100,
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFFF1EBFF,
-                                                ), // 연보라 박스
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      12,
-                                                    ), // 둥글게
-                                              ),
                                               child: const Icon(
-                                                Icons.add,
-                                                color: Color(0xFFBB9DF7),
-                                              ), // + 아이콘
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                              ), // 🧱 대체 아이콘
                                             ),
                                           ),
                                         ),
-                                      ],
+                                      ),
+                                    );
+                                  }),
+
+                                  // ➕ 마지막에 추가 버튼 (항상 보이게)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      right: 8,
+                                    ), // 간격 유지
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        // 📂 + 버튼 탭 → 사진 앨범 페이지 이동
+                                        final result =
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                            const PhotoAlbumPage(),
+                                          ),
+                                        );
+                                        if (result == true) {
+                                          _loadPhotos(); // 갱신
+                                          setState(() {}); // UI 갱신
+                                        }
+                                      },
+                                      child: Container(
+                                        width: 100,
+                                        height: 100,
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFFF1EBFF,
+                                          ), // 연보라 박스
+                                          borderRadius:
+                                          BorderRadius.circular(
+                                            12,
+                                          ), // 둥글게
+                                        ),
+                                        child: const Icon(
+                                          Icons.add,
+                                          color: Color(0xFFBB9DF7),
+                                        ), // + 아이콘
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -640,7 +609,7 @@ class _MainPageState extends State<MainPage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: const [
                                       // 🟣 타이틀
                                       Text(
@@ -730,13 +699,13 @@ class _MainPageState extends State<MainPage> {
   /// @param description - 카드 설명
   /// @param onTap - 카드 클릭 시 실행할 함수
   Widget _buildCardMenu(
-    BuildContext context, {
-    required String imagePath,
-    required String title,
-    required String subtitle,
-    required String description,
-    required VoidCallback onTap,
-  }) {
+      BuildContext context, {
+        required String imagePath,
+        required String title,
+        required String subtitle,
+        required String description,
+        required VoidCallback onTap,
+      }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(

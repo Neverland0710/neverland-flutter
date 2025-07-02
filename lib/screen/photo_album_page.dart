@@ -81,15 +81,20 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
   /// [photo] 삭제할 사진 데이터
   void _deletePhoto(Map<String, dynamic> photo) async {
     try {
-      // 서버에 DELETE 요청 전송
+      final imagePath = photo['imagePath']; // ✅ 서버가 제공한 원본 상대 경로 사용
+
+      if (imagePath == null || imagePath.isEmpty) {
+        print('❌ imagePath가 없습니다.');
+        return;
+      }
+
       final response = await http.delete(
-        Uri.parse('http://192.168.219.68:8086/photo/delete?imageUrl=${Uri.encodeComponent(photo['imageUrl'])}'),
+        Uri.parse('http://192.168.219.68:8086/photo/delete?imageUrl=${Uri.encodeComponent(imagePath)}'),
       );
 
-      // 서버 응답이 성공(200)인 경우
       if (response.statusCode == 200) {
         setState(() {
-          photos.remove(photo); // 로컬 리스트에서 해당 사진 제거
+          photos.remove(photo);
         });
         print('✅ 삭제 완료');
       } else {
@@ -163,36 +168,43 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
   /// 📥 서버에서 사진 목록을 불러오는 함수
   void _loadPhotos() async {
     try {
-      // 서버에 GET 요청으로 사진 목록 조회
+      final prefs = await SharedPreferences.getInstance();
+      final authKeyId = prefs.getString('auth_key_id');
+
+      if (authKeyId == null || authKeyId.isEmpty) {
+        print('❌ auth_key_id가 없습니다.');
+        return;
+      }
+
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=a27c90b0-559d-11f0-80d3-0242c0a81002'),
+        Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=$authKeyId'),
       );
 
-      // 서버 응답이 성공(200)인 경우
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
         setState(() {
-          photos = jsonList.map((e) {
-            final rawUrl = e['imageUrl'];
-            print('📷 로드된 이미지 URL: $rawUrl');
-
-            // 🔴 잘못된 URL(FILE_SAVE_FAILED 등)은 제외 처리
+          photos = jsonList
+              .map((e) {
+            final rawUrl = e['imagePath'];
             if (rawUrl == null || rawUrl.toString().contains('FILE_SAVE_FAILED')) {
               return null;
             }
 
-            // 📊 사진 데이터 객체 생성
             return {
-              'id': e['id'],
+              'id': e['photoId'],
               'title': e['title'],
               'description': e['description'],
-              'date': e['date'],
-              // URL이 http로 시작하지 않으면 서버 주소 앞에 붙이기
-              'imageUrl': rawUrl.toString().startsWith('http')
-                  ? rawUrl
-                  : 'http://192.168.219.68:8086$rawUrl',
+              'date': e['photoDate'],
+              'imagePath': e['imagePath'], // 삭제용
+              'imageUrl': e['imagePath'].toString().startsWith('http')
+                  ? e['imagePath']
+                  : 'http://192.168.219.68:8086${e['imagePath']}', // ✅ 여기가 중요
             };
-          }).where((e) => e != null).cast<Map<String, dynamic>>().toList(); // null 제거
+
+          })
+              .where((e) => e != null)
+              .cast<Map<String, dynamic>>()
+              .toList();
         });
       } else {
         print('❌ 목록 조회 실패: ${response.statusCode}');
@@ -201,6 +213,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
       print('❌ 네트워크 오류: $e');
     }
   }
+
 
   /// 🧹 위젯 해제 시 리소스 정리
   @override
