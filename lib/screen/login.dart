@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 'asset/image/neverland_logo.png',
                 width: 360,
                 height: 120,
-                fit: BoxFit.contain, // 비율 유지하며 컨테이너에 맞춤
+                fit: BoxFit.contain,
               ),
 
               const SizedBox(height: 12), // 로고와 텍스트 사이 간격
