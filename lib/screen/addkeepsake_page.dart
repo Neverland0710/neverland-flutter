@@ -72,6 +72,19 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
       return; // 필수 항목 미입력 시 종료
     }
 
+    // ✅ [추가] 추정 가치 유효성 검사
+    final valueText = _valueController.text.trim();
+    if (valueText.isNotEmpty && !RegExp(r'^\d+$').hasMatch(valueText)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('추정 가치는 숫자만 입력해주세요'),
+          backgroundColor: Colors.red[400],
+        ),
+      );
+      return;
+    }
+
+
     // ✅ 2. 업로드된 이미지 URL들을 저장할 리스트 생성
     List<String> uploadedImageUrls = [];
 
@@ -271,7 +284,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
     // ✅ 6. 응답 코드 확인
     if (response.statusCode == 200) {
       print('✅ 업로드 성공');
-      Navigator.pop(context, true);
+      //Navigator.pop(context, true);
       return '성공';
     } else {
       print('❌ 업로드 실패: ${response.statusCode}');
@@ -364,7 +377,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
           SizedBox(height: 20),
           _buildOutlinedInputField('유품 설명', '유품의 외관, 특징, 재질 등을 자세히 설명해주세요', _descriptionController, maxLines: 4),
           SizedBox(height: 20),
-          _buildOutlinedInputField('추정 가치 (선택사항)', '숫자만 입력', _valueController, suffix: '원'),
+          _buildOutlinedInputField('추정 가치 (선택사항)', 'ex) 10000', _valueController, suffix: '원'),
         ],
       ),
     );

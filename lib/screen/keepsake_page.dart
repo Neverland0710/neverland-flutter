@@ -39,8 +39,9 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                _deleteKeepsake(filename); // 기존 삭제 함수
+                Navigator.of(context).pop();         // 다이얼로그 닫기
+                _deleteKeepsake(filename);           // ✅ 여기서만 삭제 실행
+                print('🔥 삭제 요청 파일명: $filename');
               },
               child: const Text('삭제', style: TextStyle(color: Colors.red)),
             ),
@@ -49,6 +50,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       },
     );
   }
+
 
   @override
   void initState() {
@@ -464,7 +466,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                   final filename = Uri.encodeComponent(rawUrl.split('/').last);
                   _confirmDeleteKeepsake(filename); // ✅ 다이얼로그 먼저 띄움
                   print('🔥 삭제 요청 파일명: $filename');
-                  _deleteKeepsake(filename);
+
                 },
                 icon: const Icon(Icons.delete, color: Colors.redAccent),
                 label: const Text('삭제', style: TextStyle(color: Colors.redAccent)),

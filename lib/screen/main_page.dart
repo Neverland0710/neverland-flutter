@@ -305,22 +305,22 @@ class _MainPageState extends State<MainPage> {
                       },
                     ),
 
-                    // 실시간 통화 카드
-                    _buildCardMenu(
-                      context,
-                      imagePath: 'asset/image/call_icon.png', // 👉 아이콘 경로
-                      title: '실시간 통화',
-                      subtitle: '목소리로 마음을 전해보세요',
-                      description: '그리운 순간마다, 감정이 담긴 대화로 마음을 나눠보세요.',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const VoiceCallScreen(),
-                          ),
-                        );
-                      },
-                    ),
+                    // // 실시간 통화 카드
+                    // _buildCardMenu(
+                    //   context,
+                    //   imagePath: 'asset/image/call_icon.png', // 👉 아이콘 경로
+                    //   title: '실시간 통화',
+                    //   subtitle: '목소리로 마음을 전해보세요',
+                    //   description: '그리운 순간마다, 감정이 담긴 대화로 마음을 나눠보세요.',
+                    //   onTap: () {
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (context) => const VoiceCallScreen(),
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
 
                     // 편지 쓰기 카드
                     _buildCardMenu(
