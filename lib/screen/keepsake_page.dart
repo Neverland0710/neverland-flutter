@@ -94,6 +94,8 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
     // 검색어를 소문자로 변환하여 대소문자 구분 없이 검색
     String keyword = _searchController.text.toLowerCase();
 
+    print('🔍 현재 검색어: "$keyword"');
+
     // 제목 또는 설명에 검색어가 포함된 유품만 필터링
     List<KeepsakeItem> filtered = keepsakes.where((item) {
       return item.title.toLowerCase().contains(keyword) ||
@@ -120,6 +122,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
     setState(() {
       displayedKeepsakes = filtered;
     });
+    print('🔍 필터링 후 유품 개수: ${displayedKeepsakes.length}');
   }
 
   /// 날짜 문자열을 DateTime 객체로 변환하는 함수
@@ -136,11 +139,20 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
     final uri = Uri.parse('http://192.168.219.68:8086/keepsake/list?auth_key_id=$authKeyId');
     final response = await http.get(uri);
 
+    print('📡 요청 상태: ${response.statusCode}');  // 요청 상태 출력
+
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+      print('📦 받은 유품 개수: ${data.length}');  // 받은 데이터 개수 출력
 
       keepsakes = data.map((item) {
-        print('🟡 유품 불러옴: ${item['itemName']} | ${item['createdAt']}');
+        final imagePath = item['imagePath'];
+        final fullUrl = imagePath != null
+            ? 'http://192.168.219.68:8086$imagePath'
+            : '❌ 이미지 없음';
+
+        print('🟡 유품: ${item['itemName']} | 날짜: ${item['createdAt']} | 이미지 URL: $fullUrl');
+
         return KeepsakeItem(
           id: '${item['id']}',
           title: '${item['itemName'] ?? ''}',
@@ -148,15 +160,20 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
           description: '${item['description'] ?? ''}',
           story: '${item['specialStory'] ?? ''}',
           date: '${item['createdAt'] ?? ''}',
-          imageUrl: item['imagePath'] != null ? '${item['imagePath']}' : null,
+          imageUrl: imagePath != null
+              ? 'http://192.168.219.68:8086$imagePath'
+              : null,
         );
       }).toList();
 
       setState(() {
         displayedKeepsakes = List.from(keepsakes);
       });
+      // ✅ 필터링, 정렬, 검색 조건 다시 적용
+      _applyFilters();
     } else {
       print('❌ 유품 목록 불러오기 실패: ${response.statusCode}');
+      print('📭 응답 바디: ${response.body}');
     }
   }
 
@@ -181,6 +198,8 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
             context,
             MaterialPageRoute(builder: (context) => AddKeepsakeScreen()),
           ).then((result) {
+            // ✅ 검색창에 남아있는 텍스트 초기화하여 유품 필터링 방지
+            _searchController.clear();
             // 유품 추가 후 돌아오면 목록 새로고침
             if (result == true) {
               fetchKeepsakes();
@@ -220,7 +239,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                 Expanded(child: Container()),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             // 메인 타이틀
             Text('유품 기록', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
@@ -384,9 +403,9 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                       ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      'http://192.168.219.68:8086${item.imageUrl!}',  // 서버 URL + 이미지 경로
+                      item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
                       fit: BoxFit.cover,
-                    ),
+                    )
                   )
                       : Icon(Icons.inventory_2_outlined, color: Color(0xFF8B7ED8), size: 30),
                 ),
@@ -510,22 +529,57 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                         // 상단 영역: 이미지 + 제목/연도
                         Row(
                           children: [
+                            // 유품 이미지 또는 기본 아이콘 박스
                             Container(
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color: Color(0xFFE6E0F8),
-                                borderRadius: BorderRadius.circular(12),
+                                color: Color(0xFFE6E0F8), // 연보라 배경 (이미지 없을 경우 보임)
+                                borderRadius: BorderRadius.circular(12), // 둥근 모서리
+                              ),
+                              child: item.imageUrl != null
+                              // 이미지가 있을 경우 → 네트워크에서 불러오기
+                                  ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12), // 이미지도 둥글게 잘라줌
+                                child: Image.network(
+                                  item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
+                                  fit: BoxFit.cover,
+                                )
+                              )
+                              // 이미지가 없을 경우 → 기본 아이콘
+                                  : Icon(
+                                Icons.inventory_2_outlined, // 상자 모양 아이콘
+                                color: Color(0xFF8B7ED8),    // 보라색
+                                size: 30,
                               ),
                             ),
-                            SizedBox(width: 15),
+
+                            SizedBox(width: 15), // 이미지와 텍스트 사이 간격
+
+                            // 제목 + 연도 정보
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 왼쪽 정렬
                                 children: [
-                                  Text(item.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                                  SizedBox(height: 4),
-                                  Text(item.year, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                                  // 유품 제목
+                                  Text(
+                                    item.title,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4), // 제목과 연도 사이 간격
+
+                                  // 유품 취득 연도
+                                  Text(
+                                    item.year,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

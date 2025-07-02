@@ -105,10 +105,11 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
     final uri = Uri.parse('http://192.168.219.68:8086/photo/upload');
     final request = http.MultipartRequest('POST', uri);
 
-    // 📁 첫 번째 선택된 이미지 파일을 요청에 추가
-    request.files.add(
-        await http.MultipartFile.fromPath('file', _selectedImages.first.path)
-    );
+    // 수정: 여러 장 업로드
+    for (var i = 0; i < _selectedImages.length; i++) {
+      final imageFile = await http.MultipartFile.fromPath('file', _selectedImages[i].path);
+      request.files.add(imageFile);
+    }
 
     // 📝 추가 데이터 필드들 설정
     request.fields['auth_key_id'] = 'a27c90b0-559d-11f0-80d3-0242c0a81002'; // 사용자 인증 키

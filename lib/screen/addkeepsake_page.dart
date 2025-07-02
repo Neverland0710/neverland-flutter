@@ -162,7 +162,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
                 Expanded(child: Container()),  // 오른쪽 공간 확보
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             // 제목 텍스트
             Text('기록 업로드',
                 style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
@@ -271,6 +271,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
     // ✅ 6. 응답 코드 확인
     if (response.statusCode == 200) {
       print('✅ 업로드 성공');
+      Navigator.pop(context, true);
       return '성공';
     } else {
       print('❌ 업로드 실패: ${response.statusCode}');
