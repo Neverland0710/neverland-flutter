@@ -401,11 +401,11 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                   ),
                   child: item.imageUrl != null
                       ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
-                      fit: BoxFit.cover,
-                    )
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
+                        fit: BoxFit.cover,
+                      )
                   )
                       : Icon(Icons.inventory_2_outlined, color: Color(0xFF8B7ED8), size: 30),
                 ),
@@ -540,11 +540,11 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                               child: item.imageUrl != null
                               // 이미지가 있을 경우 → 네트워크에서 불러오기
                                   ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12), // 이미지도 둥글게 잘라줌
-                                child: Image.network(
-                                  item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
-                                  fit: BoxFit.cover,
-                                )
+                                  borderRadius: BorderRadius.circular(12), // 이미지도 둥글게 잘라줌
+                                  child: Image.network(
+                                    item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
+                                    fit: BoxFit.cover,
+                                  )
                               )
                               // 이미지가 없을 경우 → 기본 아이콘
                                   : Icon(

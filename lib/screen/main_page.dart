@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neverland_flutter/screen/photo_album_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:neverland_flutter/screen/voice_call_screen.dart';
 
 /// 메인 페이지 StatefulWidget
 /// fromLetter 매개변수로 편지 페이지에서 왔는지 확인 가능
@@ -304,6 +305,23 @@ class _MainPageState extends State<MainPage> {
                       },
                     ),
 
+                    // 실시간 통화 카드
+                    _buildCardMenu(
+                      context,
+                      imagePath: 'asset/image/call_icon.png', // 👉 아이콘 경로
+                      title: '실시간 통화',
+                      subtitle: '목소리로 마음을 전해보세요',
+                      description: '그리운 순간마다, 감정이 담긴 대화로 마음을 나눠보세요.',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const VoiceCallScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
                     // 편지 쓰기 카드
                     _buildCardMenu(
                       context,
@@ -575,18 +593,18 @@ class _MainPageState extends State<MainPage> {
                     // 유품 기록 카드
                     GestureDetector(
                       // 🔘 클릭 시 KeepsakeScreen으로 이동
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => KeepsakeScreen(),
                           ),
                         );
+
                         if (result == true) {
-                          // ✅ 돌아왔을 때 다시 데이터 새로고침
-                          _loadKeepsakes(); // 이건 네가 만든 요약 정보 불러오는 함수
-                          setState(() {});
-                        } // 혹은 상태 갱신용으로 사용
+                          _loadKeepsakes(); // 유품 목록 새로고침
+                          setState(() {});  // UI 갱신
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.all(16),
