@@ -136,42 +136,44 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
 
   /// 서버에서 유품 목록을 가져오는 함수
   Future<void> fetchKeepsakes() async {
-    const authKeyId = 'a27c90b0-559d-11f0-80d3-0242c0a81002';  // ✅ 고정된 유족 ID
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id');
+
+    if (authKeyId == null) {
+      print('❌ 저장된 인증 키가 없습니다.');
+      return;
+    }
 
     final uri = Uri.parse('http://192.168.219.68:8086/keepsake/list?auth_key_id=$authKeyId');
     final response = await http.get(uri);
 
-    print('📡 요청 상태: ${response.statusCode}');  // 요청 상태 출력
+    print('📡 요청 상태: ${response.statusCode}');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
-      print('📦 받은 유품 개수: ${data.length}');  // 받은 데이터 개수 출력
+      print('📦 받은 유품 개수: ${data.length}');
 
       keepsakes = data.map((item) {
         final imagePath = item['imagePath'];
         final fullUrl = imagePath != null
             ? 'http://192.168.219.68:8086$imagePath'
-            : '❌ 이미지 없음';
-
-        print('🟡 유품: ${item['itemName']} | 날짜: ${item['createdAt']} | 이미지 URL: $fullUrl');
+            : null;
 
         return KeepsakeItem(
-          id: '${item['id']}',
+          id: '${item['keepsakeId']}',
           title: '${item['itemName'] ?? ''}',
           year: '${item['acquisitionPeriod'] ?? ''}',
           description: '${item['description'] ?? ''}',
           story: '${item['specialStory'] ?? ''}',
           date: '${item['createdAt'] ?? ''}',
-          imageUrl: imagePath != null
-              ? 'http://192.168.219.68:8086$imagePath'
-              : null,
+          imageUrl: fullUrl,
         );
       }).toList();
 
       setState(() {
         displayedKeepsakes = List.from(keepsakes);
       });
-      // ✅ 필터링, 정렬, 검색 조건 다시 적용
+
       _applyFilters();
     } else {
       print('❌ 유품 목록 불러오기 실패: ${response.statusCode}');
