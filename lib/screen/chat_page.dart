@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';                 // 날짜/시간 포맷팅을 �
 import 'package:intl/date_symbol_data_local.dart'; // 한국어 날짜 포맷을 위한 로케일 데이터
 import 'package:image_picker/image_picker.dart';   // 카메라/갤러리에서 이미지 선택을 위한 패키지
 import 'dart:io';                                  // File 클래스 사용을 위한 dart:io
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 실시간 채팅 화면을 담당하는 StatefulWidget
 /// 텍스트 메시지와 이미지 전송, 가짜 응답 등의 기능을 제공
@@ -33,6 +36,9 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
   void initState() {
     super.initState();
 
+    // ✅ 저장된 채팅 불러오기
+    loadMessagesFromPrefs(); // 🔥 이 줄 추가
+
     // 한국어 날짜 포맷 초기화 (오전/오후 표시를 위해)
     initializeDateFormatting('ko');
 
@@ -45,32 +51,108 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     });
   }
 
+  Future<void> loadMessagesFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = prefs.getString('chat_messages');
+    if (encoded != null) {
+      final List<dynamic> decoded = jsonDecode(encoded);
+      setState(() {
+        _messages.clear(); // 기존 메시지 초기화
+        for (var msg in decoded) {
+          if (msg is Map<String, dynamic>) {
+            // ✅ image_path가 있으면 image로 File 객체 복원
+            if (msg.containsKey('image_path')) {
+              msg['image'] = File(msg['image_path']);
+            }
+            _messages.add(msg);
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> saveMessagesToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(_messages);
+    await prefs.setString('chat_messages', encoded);
+  }
+
+
   /// 메시지 전송 함수
   /// 입력된 텍스트를 메시지 리스트에 추가하고 가짜 응답을 트리거
-  void _sendMessage() {
-    final text = _messageController.text.trim(); // 입력 텍스트에서 앞뒤 공백 제거
-    if (text.isEmpty) return; // 빈 메시지는 전송하지 않음
+  void _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
 
-    final now = DateTime.now(); // 현재 시간 획득
-    // 한국어 포맷으로 시간 변환 (예: "오후 02:30")
+    final now = DateTime.now();
     final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
 
-    // 새 메시지를 메시지 리스트에 추가
     setState(() {
       _messages.add({
-        "sender": "나",           // 메시지 발신자
-        "text": text,            // 메시지 내용
-        "time": formattedTime,   // 전송 시간
+        "sender": "나",
+        "text": text,
+        "time": formattedTime,
       });
     });
 
-    _messageController.clear(); // 입력 필드 클리어
+    await saveMessagesToPrefs(); // ✅ 여기에 추가
 
-    // 약간의 지연 후 스크롤을 맨 아래로 이동 (애니메이션 대기)
+    _messageController.clear();
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
 
-    // 가짜 응답 메시지 트리거
-    _sendFakeReply();
+    _sendReplyToServer(text); // ✅ 실제 서버 전송
+  }
+
+  Future<void> _sendReplyToServer(String userMessage) async {
+    final url = Uri.parse("http://192.168.219.68:8086/chat/ask");
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authKeyId = prefs.getString("auth_key_id"); // ✅ 여기도 정확히
+      final userId = prefs.getString("user_id");
+
+      if (authKeyId == null || userId == null) {
+        print("❌ SharedPreferences에 authKeyId 또는 userId 없음");
+        return;
+      }
+
+      print('✅ SharedPreferences 불러오기 완료: $authKeyId / $userId');
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "auth_key_id": authKeyId,
+          "user_id": userId,
+          "user_input": userMessage,
+        }),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print("📥 서버 응답 바디: ${response.body}");
+        final replyJson = jsonDecode(response.body);
+        final replyText = replyJson['response'] ?? '';
+
+        final now = DateTime.now();
+        final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
+
+        setState(() {
+          _messages.add({
+            "sender": "상대방",
+            "text": replyText,
+            "time": formattedTime,
+          });
+        });
+
+        await saveMessagesToPrefs(); // ✅ 이 줄 추가
+
+        Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+      } else {
+        print("❌ 서버 응답 실패: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ 예외 발생: $e");
+    }
   }
 
   /// 상대방의 가짜 응답 메시지를 생성하는 함수
@@ -199,19 +281,20 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
 
   /// 이미지 메시지를 채팅에 추가하는 함수
   /// File 객체를 받아서 메시지 리스트에 이미지 메시지로 추가
-  void _addImageMessage(File image) {
+  void _addImageMessage(File image) async {
     final now = DateTime.now();
     final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
 
     setState(() {
       _messages.add({
         "sender": "나",
-        "image": image,        // 텍스트 대신 이미지 File 객체 저장
+        "image_path": image.path, // 🔥 File 대신 경로만 저장
         "time": formattedTime,
       });
     });
 
-    // 이미지 메시지 추가 후 스크롤을 맨 아래로 이동
+    await saveMessagesToPrefs(); // ✅ 저장
+
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
 
@@ -223,7 +306,6 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
       // 상단 앱바 (상대방 이름과 뒤로가기 버튼)
       appBar: AppBar(
         backgroundColor: const Color(0xFFD6C7FF), // 앱바 배경색
-        title: const Text('동연', style: TextStyle(color: Colors.black)), // 상대방 이름
         leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
         elevation: 0.5, // 약간의 그림자
       ),

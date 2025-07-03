@@ -62,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Firebase에 구글 계정으로 로그인
       await FirebaseAuth.instance.signInWithCredential(credential);
 
+
       // Firebase에서 JWT ID Token 발급 (백엔드 인증용)
       final String? idToken = await FirebaseAuth.instance.currentUser?.getIdToken(true);
 
@@ -88,29 +89,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // 서버 응답이 성공(200)인 경우
       if (response.statusCode == 200) {
-        // 서버 응답 데이터 파싱
         final responseData = jsonDecode(response.body);
-        final jwt = responseData['access_token'];        // JWT 액세스 토큰
-        final authKeyId = responseData['auth_key_id'];   // 사용자 인증 키 ID
+        final jwt = responseData['access_token'];
+        final authKeyId = responseData['auth_key_id'];
+        final userId = responseData['user_id']; // ✅ 추가
 
-        // auth_key_id 존재 여부 확인
-        if (authKeyId == null) {
-          print('❌ auth_key_id 응답에 없음!');
+        if (authKeyId == null || userId == null) {
+          print('❌ authKeyId 또는 userId 응답에 없음!');
         } else {
-          // SharedPreferences 인스턴스 획득
           final prefs = await SharedPreferences.getInstance();
-
-          // auth_key_id를 로컬 저장소에 저장 (일반 데이터용)
-          await prefs.setString('auth_key_id', authKeyId);
-          print('✅ auth_key_id 저장됨: $authKeyId');
+          await prefs.setString('auth_key_id', authKeyId); // ✅ 일치시켜야 함
+          await prefs.setString('user_id', responseData['user_id']); // ✅ 일치시켜야 함
+          print('✅ SharedPreferences 저장 완료: $authKeyId / ${responseData['user_id']}');
         }
-
-        // JWT 토큰을 안전한 저장소에 저장 (보안이 중요한 토큰용)
         const storage = FlutterSecureStorage();
         await storage.write(key: 'jwt', value: jwt);
 
-        // 로그인 성공 후 약관 동의 화면으로 이동
-        if (!context.mounted) return; // Widget이 여전히 마운트되어 있는지 확인
+        if (!context.mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TermsAgreementScreen()),
