@@ -76,7 +76,7 @@ class LetterReplyDetailPage extends StatelessWidget {
 
                 // 답장 내용 텍스트
                 Text(
-                  replyLetter, // 전달받은 답장 내용 표시
+                  replyLetter.isEmpty ? '답장이 아직 없습니다.' : replyLetter, // 빈 값이면 기본 메시지
                   style: const TextStyle(
                     fontFamily: 'Pretendard',
                     fontSize: 14,

@@ -24,119 +24,120 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  // 데이터 리스트들
+// 편지 작성 여부 변수 추가
+late bool isLetterWritten;
 
-  List<Map<String, dynamic>> _photos = []; // 사진 목록
+@override
+void initState() {
+  super.initState();
+  _checkLetterStatus();  // 편지 작성 여부 확인
+  _loadStatistics();      // 통계 로드
+  _loadPhotos();          // 사진 썸네일 로드
+}
 
+List<Map<String, dynamic>> _photos = []; // 사진 목록
 
-  // 통계 카운트들
-  int _photoCount = 0; // 저장된 사진 개수
-  int _replyLetterCount = 0; // 답장온 편지 개수
-  int _keepsakeCount = 0; // 유품 기록 개수
+// 통계 카운트들
+int _photoCount = 0; // 저장된 사진 개수
+int _replyLetterCount = 0; // 답장온 편지 개수
+int _keepsakeCount = 0; // 유품 기록 개수
 
+// 편지 작성 여부를 확인하는 함수
+Future<void> _checkLetterStatus() async {
+  final prefs = await SharedPreferences.getInstance();
+  final letterStatus = prefs.getBool('isLetterWritten') ?? false;  // 기본값은 false
 
+  setState(() {
+    isLetterWritten = letterStatus;
+  });
+}
 
+Future<void> _loadStatistics() async {
+  final prefs = await SharedPreferences.getInstance();
+  final userId = prefs.getString('user_id');
 
-  Future<void> _loadStatistics() async {
+  if (userId == null || userId.isEmpty) {
+    print('❌ userId가 없습니다.');
+    return;
+  }
+
+  try {
+    final response = await http.get(
+      Uri.parse('http://192.168.219.68:8086/statistics/get?userId=$userId'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        _photoCount = data['photoCount'] ?? 0;
+        _replyLetterCount = data['sentLetterCount'] ?? 0;
+        _keepsakeCount = data['keepsakeCount'] ?? 0;
+      });
+    } else {
+      print('❌ 통계 불러오기 실패: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('❌ 통계 요청 중 오류 발생: $e');
+  }
+}
+
+/// 서버에서 사진 썸네일 목록을 불러오는 함수
+void _loadPhotos() async {
+  try {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
+    final authKeyId = prefs.getString('auth_key_id');
 
-    if (userId == null || userId.isEmpty) {
-      print('❌ userId가 없습니다.');
+    if (authKeyId == null || authKeyId.isEmpty) {
+      print('❌ auth_key_id가 없습니다.');
       return;
     }
 
-    try {
-      final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/statistics/get?userId=$userId'),
-      );
+    final response = await http.get(
+      Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=$authKeyId'),
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+    print('📡 사진 응답 상태코드: ${response.statusCode}');
+    print('📦 응답 바디: ${response.body}');
 
-        setState(() {
-          _photoCount = data['photoCount'] ?? 0;
-          _replyLetterCount = data['sentLetterCount'] ?? 0;
-          _keepsakeCount = data['keepsakeCount'] ?? 0;
-        });
-      } else {
-        print('❌ 통계 불러오기 실패: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ 통계 요청 중 오류 발생: $e');
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      print('🧾 받은 JSON 개수: ${jsonList.length}');
+
+      setState(() {
+        _photos = jsonList
+            .map((e) {
+          final rawUrl = e['imagePath'];
+          if (rawUrl == null || rawUrl.toString().contains('FILE_SAVE_FAILED')) {
+            return null;
+          }
+
+          final completeUrl = rawUrl.toString().startsWith('http')
+              ? rawUrl
+              : 'http://192.168.219.68:8086$rawUrl';
+
+          return {
+            'id': e['id'],
+            'title': e['title'],
+            'description': e['description'],
+            'date': e['date'],
+            'imageUrl': completeUrl,
+          };
+        })
+            .where((e) => e != null)
+            .cast<Map<String, dynamic>>()
+            .toList();
+      });
+    } else {
+      print('❌ 메인에서 사진 로드 실패: ${response.statusCode}');
     }
+  } catch (e) {
+    print('❌ 메인에서 사진 로드 에러: $e');
   }
+}
 
 
-
-  /// 위젯 초기화 시 실행되는 함수
-  @override
-  void initState() {
-    super.initState();
-    _loadStatistics();   // ✅ 통계 수치만 한 번에 불러오기
-
-    _loadPhotos();       // 🖼️ 사진 썸네일도 필요 시
-  }
-
-
-
-  /// 서버에서 사진 썸네일 목록을 불러오는 함수
-  void _loadPhotos() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final authKeyId = prefs.getString('auth_key_id');
-
-      if (authKeyId == null || authKeyId.isEmpty) {
-        print('❌ auth_key_id가 없습니다.');
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=$authKeyId'),
-      );
-
-      print('📡 사진 응답 상태코드: ${response.statusCode}');
-      print('📦 응답 바디: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(response.body);
-        print('🧾 받은 JSON 개수: ${jsonList.length}');
-
-        setState(() {
-          _photos = jsonList
-              .map((e) {
-            final rawUrl = e['imagePath'];
-            if (rawUrl == null || rawUrl.toString().contains('FILE_SAVE_FAILED')) {
-              return null;
-            }
-
-            final completeUrl = rawUrl.toString().startsWith('http')
-                ? rawUrl
-                : 'http://192.168.219.68:8086$rawUrl';
-
-            return {
-              'id': e['id'],
-              'title': e['title'],
-              'description': e['description'],
-              'date': e['date'],
-              'imageUrl': completeUrl,
-            };
-          })
-              .where((e) => e != null)
-              .cast<Map<String, dynamic>>()
-              .toList();
-        });
-      } else {
-        print('❌ 메인에서 사진 로드 실패: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ 메인에서 사진 로드 에러: $e');
-    }
-  }
-
-
-
-  /// 로그아웃 확인 다이얼로그 표시
+/// 로그아웃 확인 다이얼로그 표시
   void _confirmLogout() {
     showDialog(
       context: context,
@@ -298,12 +299,24 @@ class _MainPageState extends State<MainPage> {
                       subtitle: '마음을 담은 편지를 전해보세요',
                       description: '고인에게 전하고 싶은 마음을 편지로 작성하고, 따뜻한 답장을 받아보세요.',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LetterWritePage(),
-                          ),
-                        );
+                        // 편지 작성 여부에 따라 이동할 화면 결정
+                        if (isLetterWritten) {
+                          // 편지가 작성된 경우, 편지 목록 페이지로 이동
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LetterListPage(),  // 편지 목록 페이지로 이동
+                            ),
+                          );
+                        } else {
+                          // 편지가 작성되지 않은 경우, 편지 작성 페이지로 이동
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LetterWritePage(),  // 편지 작성 페이지로 이동
+                            ),
+                          );
+                        }
                       },
                     ),
 

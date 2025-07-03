@@ -223,6 +223,10 @@ class _LetterWritePageState extends State<LetterWritePage> {
                         print('✅ 편지 전송 성공');
                         print('LetterListPage로 이동 중...');
 
+                        // 편지 작성 완료 상태를 SharedPreferences에 저장
+                        final prefs = await SharedPreferences.getInstance();
+                        prefs.setBool('isLetterWritten', true);  // 편지 작성 완료 상태 저장
+
                         // 위젯이 여전히 마운트되어 있는지 확인 (메모리 안전성)
                         if (!mounted) return;
 
