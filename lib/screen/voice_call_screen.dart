@@ -1,21 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:io';
+
+// Image 충돌 해결을 위한 alias
+import 'package:flutter/widgets.dart' as widgets;
 
 // 음성 통화 상태를 나타내는 열거형
 enum VoiceState {
   idle,        // 대기 상태 (말하기 대기중)
   speaking,    // 사용자가 말하는 중
   listening,   // AI가 응답하는 중 (답변 듣는중)
+  processing,  // Whisper STT 처리 중
   error,       // 에러 상태
 }
 
@@ -50,23 +60,57 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
   // 대화 기록
   List<Map<String, dynamic>> _conversations = [];
 
-  // ElevenLabs 및 음성 관련 (추가)
-  WebSocketChannel? _elevenLabsChannel;
-  FlutterSoundRecorder? _audioRecorder;
+  // Whisper STT 관련 변수들
+  late FlutterSoundRecorder _recorder;
   final AudioPlayer _audioPlayer = AudioPlayer();
-
-  // ElevenLabs 설정 (추가)
-  static String get _elevenLabsApiKey => dotenv.env['ELEVENLABS_API_KEY'] ?? '';
-  static const String _voiceId = 'YOUR_VOICE_ID'; // 고인의 목소리 ID
-
-  // Spring Boot 백엔드 WebSocket (추가)
   WebSocketChannel? _backendChannel;
-  static const String _backendUrl = 'ws://your-backend-url/voice-call';
+  bool _whisperEnabled = false;
+  String _currentSpeechText = '';
+  String? _currentRecordingPath;
+
+  // Spring Boot WebSocket URL - 환경변수에서 읽기
+  String get _backendUrl => dotenv.env['BACKEND_URL'] ?? 'ws://localhost:8080/voice-call';
+
+  // Whisper API 호출 메서드
+  Future<String?> transcribeAudioWithWhisper(Uint8List audioBytes) async {
+    final apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+    if (apiKey.isEmpty) {
+      print('OpenAI API 키가 설정되지 않았습니다.');
+      return null;
+    }
+
+    final uri = Uri.parse('https://api.openai.com/v1/audio/transcriptions');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $apiKey'
+      ..fields['model'] = 'whisper-1'
+      ..fields['language'] = 'ko'
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        audioBytes,
+        filename: 'audio.m4a',
+      ));
+
+    try {
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.bytesToString();
+        final data = json.decode(responseData);
+        return data['text']?.toString();
+      } else {
+        print('Whisper API 오류: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Whisper STT 오류: $e');
+      return null;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     // 애니메이션 컨트롤러들 초기화
+    _recorder = FlutterSoundRecorder();
     _recordController = AnimationController(vsync: this);
     _buttonScaleController = AnimationController(
       duration: const Duration(milliseconds: 150),
@@ -80,8 +124,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
       });
     })..start();
 
-    // 마이크 권한 체크 및 ElevenLabs 초기화
-    _checkPermissions();
+    // Whisper STT 초기화
+    _initializeWhisperSTT();
   }
 
   @override
@@ -90,79 +134,315 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
     _ticker.dispose();
     _recordController.dispose();
     _buttonScaleController.dispose();
-    // ElevenLabs 관련 리소스 해제 (추가)
-    _audioRecorder?.closeRecorder();
     _audioPlayer.dispose();
-    _elevenLabsChannel?.sink.close();
+    _recorder.closeRecorder();
     _backendChannel?.sink.close();
     super.dispose();
   }
 
-  // 권한 체크 및 ElevenLabs 초기화 (수정)
-  Future<void> _checkPermissions() async {
+  // Whisper STT 초기화
+  Future<void> _initializeWhisperSTT() async {
     try {
+      await _recorder.openRecorder();
       // 마이크 권한 요청
-      final status = await Permission.microphone.request();
-      if (status == PermissionStatus.granted) {
-        // FlutterSoundRecorder 초기화
-        _audioRecorder = FlutterSoundRecorder();
-        await _audioRecorder!.openRecorder();
-
-        // ElevenLabs 연결 (선택사항 - 백엔드가 준비되면 활성화)
-        // await _connectToElevenLabs();
-      } else {
+      final micStatus = await Permission.microphone.request();
+      if (micStatus != PermissionStatus.granted) {
         throw Exception('마이크 권한이 필요합니다');
       }
+
+      // OpenAI API 키 확인
+      final apiKey = dotenv.env['OPENAI_API_KEY'];
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('OpenAI API 키가 설정되지 않았습니다');
+      }
+
+      _whisperEnabled = true;
+
+      // 백엔드 연결
+      await _connectToBackend();
+
+      print('Whisper STT 초기화 완료');
     } catch (e) {
+      print('Whisper STT 초기화 실패: $e');
       setState(() {
         _voiceState = VoiceState.error;
       });
     }
   }
 
-  // ElevenLabs WebSocket 연결 (추가)
-  Future<void> _connectToElevenLabs() async {
+// WebSocket 연결 시도
+  Future<void> _connectToBackend() async {
     try {
-      final uri = 'wss://api.elevenlabs.io/v1/text-to-speech/$_voiceId/stream-input?model_id=eleven_turbo_v2';
+      final prefs = await SharedPreferences.getInstance();
+      final authKeyId = prefs.getString('authKeyId') ?? '';
 
-      _elevenLabsChannel = IOWebSocketChannel.connect(
-        uri,
-        headers: {
-          'xi-api-key': _elevenLabsApiKey,
+      final wsUri = Uri.parse(_backendUrl);
+      final updatedUri = Uri(
+        scheme: wsUri.scheme,
+        host: wsUri.host,
+        port: wsUri.port,
+        path: wsUri.path,
+        queryParameters: {
+          'authKeyId': authKeyId,
         },
       );
 
-      _elevenLabsChannel!.stream.listen(
+      _backendChannel = IOWebSocketChannel.connect(
+        updatedUri.toString(),
+      );
+
+      _backendChannel!.stream.listen(
             (data) {
-          _handleElevenLabsAudio(data);
+          print('WebSocket 메시지 수신: $data'); // 디버그 로그 추가
+          _handleBackendMessage(data);
         },
         onError: (error) {
-          print('ElevenLabs WebSocket Error: $error');
+          print('Backend WebSocket Error: $error');
+          setState(() {
+            _voiceState = VoiceState.error;
+          });
+          // 재연결 시도 추가 (간격을 길게)
+          Future.delayed(Duration(seconds: 5), () {
+            print('WebSocket 재연결 시도');
+            _connectToBackend();
+          });
+        },
+        onDone: () {
+          print('Backend WebSocket connection closed');
+          setState(() {
+            _voiceState = VoiceState.error;
+          });
+          // 재연결 시도 추가 (간격을 길게)
+          Future.delayed(Duration(seconds: 5), () {
+            print('WebSocket 재연결 시도');
+            _connectToBackend();
+          });
         },
       );
+
+      // 연결 성공 메시지 전송 (딜레이 추가)
+      await Future.delayed(Duration(milliseconds: 500));
+      _backendChannel!.sink.add(json.encode({
+        'type': 'connect',
+        'timestamp': DateTime.now().toIso8601String(),
+      }));
+
+      print('WebSocket 연결 성공 및 초기 메시지 전송');
+
+      // WebSocket 연결 후 ping 메시지 주기적으로 보내기 시작
+      _startPingTimer();  // ping 타이머 시작
+
     } catch (e) {
-      print('ElevenLabs connection failed: $e');
+      print('Backend connection failed: $e');
+      setState(() {
+        _voiceState = VoiceState.error;
+      });
+      // 재연결 시도: 5초 후
+      Future.delayed(Duration(seconds: 5), () {
+        print('WebSocket 재연결 시도');
+        _connectToBackend();
+      });
     }
   }
 
-  // ElevenLabs 음성 데이터 처리 (추가)
-  void _handleElevenLabsAudio(dynamic data) async {
+// 서버로 주기적으로 ping 메시지를 보내는 방법
+  Future<void> _sendPing() async {
+    if (_backendChannel != null) {
+      _backendChannel!.sink.add(json.encode({
+        'type': 'ping',
+        'timestamp': DateTime.now().toIso8601String(),
+      }));
+    }
+  }
+
+// 일정 시간 간격으로 ping 보내기
+  void _startPingTimer() {
+    Timer.periodic(Duration(seconds: 30), (timer) {
+      _sendPing();
+    });
+  }
+
+  // Spring Boot에서 오는 메시지 처리
+  void _handleBackendMessage(dynamic data) async {
     try {
-      final audioData = json.decode(data);
+      final message = json.decode(data);
 
-      if (audioData['audio'] != null) {
-        final audioBytes = base64Decode(audioData['audio']);
-        await _audioPlayer.play(BytesSource(audioBytes));
+      switch (message['type']) {
+        case 'audio_chunk':
+        // 실시간 오디오 청크 재생
+          final audioBytes = base64Decode(message['audio_data']);
+          await _playAudioChunk(audioBytes);
+          break;
 
-        if (audioData['isFinal'] == true) {
+        case 'audio_start':
+        // AI 응답 시작
           setState(() {
-            _voiceState = VoiceState.speaking;
-            _recordController.repeat();
+            _voiceState = VoiceState.listening;
+            _recordController.stop();
           });
-        }
+          break;
+
+        case 'audio_end':
+        // AI 응답 완료, 다시 말하기 가능 상태로
+          setState(() {
+            _voiceState = VoiceState.idle;
+          });
+          break;
+
+        case 'text_response':
+        // AI 텍스트 응답 (UI 업데이트용)
+          setState(() {
+            _aiResponse = message['text'];
+            _conversations.add({
+              'type': 'ai',
+              'message': _aiResponse,
+              'timestamp': DateTime.now(),
+            });
+          });
+          break;
+
+        case 'error':
+          print('Backend error: ${message['message']}');
+          setState(() {
+            _voiceState = VoiceState.error;
+          });
+          break;
       }
     } catch (e) {
-      print('Audio processing error: $e');
+      print('Message handling error: $e');
+    }
+  }
+
+  // 실시간 오디오 청크 재생
+  Future<void> _playAudioChunk(Uint8List audioBytes) async {
+    try {
+      await _audioPlayer.play(BytesSource(audioBytes));
+    } catch (e) {
+      print('Audio playback error: $e');
+    }
+  }
+
+  // 음성 녹음 시작
+  Future<void> _startRecording() async {
+    if (!_whisperEnabled) return;
+
+    try {
+      // 임시 디렉토리 경로 가져오기
+      final tempDir = await getTemporaryDirectory();
+      _currentRecordingPath = '${tempDir.path}/whisper_audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      // 녹음 시작 (hasPermission 체크 제거)
+      try {
+        await _recorder.startRecorder(
+          toFile: _currentRecordingPath!,
+          codec: Codec.aacMP4,
+          bitRate: 128000,
+          sampleRate: 16000,
+        );
+
+        setState(() {
+          _currentSpeechText = '';
+        });
+
+        print('녹음 시작: $_currentRecordingPath');
+      } catch (e) {
+        print('녹음 시작 실패: $e');
+        throw Exception('녹음 권한이 없거나 녹음을 시작할 수 없습니다');
+      }
+    } catch (e) {
+      print('녹음 시작 오류: $e');
+      setState(() {
+        _voiceState = VoiceState.error;
+      });
+    }
+  }
+
+  // 음성 녹음 중지 및 Whisper STT 처리
+  Future<void> _stopRecording() async {
+    try {
+      // 녹음 중지
+      await _recorder.stopRecorder();
+
+
+      setState(() {
+        _voiceState = VoiceState.processing;
+      });
+
+      print('녹음 중지: $_currentRecordingPath');
+
+      // 파일 존재 확인
+      if (_currentRecordingPath == null || !File(_currentRecordingPath!).existsSync()) {
+        throw Exception('녹음 파일을 찾을 수 없습니다');
+      }
+
+      // Whisper STT 처리
+      await _transcribeWithWhisper(_currentRecordingPath!);
+
+    } catch (e) {
+      print('녹음 중지 오류: $e');
+      setState(() {
+        _voiceState = VoiceState.error;
+      });
+    }
+  }
+
+  // Whisper API로 음성을 텍스트로 변환
+  Future<void> _transcribeWithWhisper(String audioPath) async {
+    try {
+      print('Whisper STT 처리 시작...');
+
+      // 오디오 파일 읽기
+      final audioFile = File(audioPath);
+      final audioBytes = await audioFile.readAsBytes();
+
+      // Whisper API 호출
+      final transcribedText = await transcribeAudioWithWhisper(audioBytes) ?? '';
+
+      setState(() {
+        _currentSpeechText = transcribedText;
+      });
+
+      if (transcribedText.isNotEmpty) {
+        // 인식된 텍스트를 Spring Boot로 전송
+        _sendTextToBackend(transcribedText);
+
+        // 대화 기록에 추가
+        setState(() {
+          _conversations.add({
+            'type': 'user',
+            'message': transcribedText,
+            'timestamp': DateTime.now(),
+          });
+          _voiceState = VoiceState.listening; // AI 응답 대기 상태로 변경
+        });
+
+        print('STT 결과: $transcribedText');
+      } else {
+        setState(() {
+          _voiceState = VoiceState.idle;
+        });
+        print('인식된 텍스트가 없습니다.');
+      }
+
+      // 임시 파일 삭제
+      await audioFile.delete();
+
+    } catch (e) {
+      print('Whisper STT 오류: $e');
+      setState(() {
+        _voiceState = VoiceState.error;
+      });
+    }
+  }
+
+  // 텍스트를 Spring Boot로 전송
+  void _sendTextToBackend(String text) {
+    if (_backendChannel != null) {
+      _backendChannel!.sink.add(json.encode({
+        'type': 'user_message',
+        'text': text,
+        'timestamp': DateTime.now().toIso8601String(),
+      }));
     }
   }
 
@@ -182,6 +462,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
         return '답변 듣는중...';
       case VoiceState.speaking:
         return '그만말하기';
+      case VoiceState.processing:
+        return '처리중...';
       case VoiceState.error:
         return '다시 시도';
     }
@@ -198,6 +480,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
         return 'AI가 답변하고 있습니다\n잠시만 기다려주세요';
       case VoiceState.speaking:
         return '말씀이 끝나시면\n그만말하기를 눌러주세요';
+      case VoiceState.processing:
+        return '음성을 분석하고 있습니다\n잠시만 기다려주세요';
       case VoiceState.error:
         return '연결에 문제가 발생했습니다\n다시 시도해주세요';
       default:
@@ -205,59 +489,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
     }
   }
 
-  // AI 응답 시뮬레이션 (기존 유지)
-  void _simulateAIResponse() {
-    final responses = [
-      '안녕하세요! 무엇을 도와드릴까요?',
-      '네, 잘 들었습니다. 더 궁금한 것이 있나요?',
-      '좋은 질문이네요. 제가 설명해드릴게요.',
-      '더 자세히 알고 싶으시면 언제든 말씀해주세요.',
-    ];
-
-    setState(() {
-      _aiResponse = responses[_conversations.length % responses.length];
-      _conversations.add({
-        'type': 'ai',
-        'message': _aiResponse,
-        'timestamp': DateTime.now(),
-      });
-    });
-  }
-
-  // 실제 음성 녹음 시작 (추가)
-  Future<void> _startRecording() async {
-    try {
-      if (_audioRecorder != null) {
-        await _audioRecorder!.startRecorder(
-          toFile: '/temp/recording.wav',
-          codec: Codec.pcm16WAV,
-          sampleRate: 16000,
-        );
-      }
-    } catch (e) {
-      print('Recording error: $e');
-    }
-  }
-
-  // 실제 음성 녹음 중지 (추가)
-  Future<void> _stopRecording() async {
-    try {
-      if (_audioRecorder != null) {
-        final path = await _audioRecorder!.stopRecorder();
-        if (path != null) {
-          // 여기서 백엔드로 음성 파일 전송 가능
-          print('Recording saved to: $path');
-        }
-      }
-    } catch (e) {
-      print('Stop recording error: $e');
-    }
-  }
-
-  // 버튼 클릭 처리 (수정: 실제 녹음 기능 추가)
+  // 버튼 클릭 처리
   void _handleButtonPress() async {
-    if (_voiceState == VoiceState.listening) {
-      return; // 듣기 상태에서는 버튼 비활성화
+    if (_voiceState == VoiceState.listening || _voiceState == VoiceState.processing) {
+      return; // 듣기 또는 처리 상태에서는 버튼 비활성화
     }
 
     // 버튼 애니메이션
@@ -274,46 +509,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
           _voiceState = VoiceState.speaking;
           _hasStartedConversation = true;
           _recordController.repeat();
-          _startRecording(); // 실제 녹음 시작
+          _startRecording(); // 녹음 시작
 
         } else if (_voiceState == VoiceState.speaking) {
           // 말하기 중단
-          _voiceState = VoiceState.listening;
           _recordController.stop();
-          _stopRecording(); // 실제 녹음 중지
-
-          // 사용자 입력 시뮬레이션
-          _conversations.add({
-            'type': 'user',
-            'message': '사용자가 말한 내용',
-            'timestamp': DateTime.now(),
-          });
+          _stopRecording(); // 녹음 중지 및 STT 처리
 
         } else if (_voiceState == VoiceState.error) {
           // 에러 상태에서 재시도
           _voiceState = VoiceState.idle;
-          _checkPermissions();
+          _initializeWhisperSTT();
         }
       });
-
-      // 듣기 상태에서 자동으로 말하기 상태로 전환
-      if (_voiceState == VoiceState.listening) {
-        // AI 응답 시뮬레이션
-        _simulateAIResponse();
-
-        // 5초 대기
-        final waitTime = Duration(seconds: 60);
-
-        await Future.delayed(waitTime);
-
-        if (mounted && _voiceState == VoiceState.listening) {
-          setState(() {
-            _voiceState = VoiceState.speaking;
-            _recordController.repeat();
-          });
-        }
-      }
     } catch (e) {
+      print('Button press error: $e');
       setState(() {
         _voiceState = VoiceState.error;
       });
@@ -345,6 +555,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                                 ? Colors.red.withOpacity(0.8)
                                 : _voiceState == VoiceState.listening
                                 ? Colors.green.withOpacity(0.8)
+                                : _voiceState == VoiceState.processing
+                                ? Colors.orange.withOpacity(0.8)
                                 : Colors.transparent,
                             width: 3,
                           ),
@@ -385,7 +597,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                                     shape: BoxShape.circle,
                                     color: _voiceState == VoiceState.error
                                         ? Colors.red
-                                        : Colors.green,
+                                        : _whisperEnabled
+                                        ? Colors.green
+                                        : Colors.orange,
                                   ),
                                 ),
                                 Text(
@@ -468,7 +682,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            '음성을 인식하고 있습니다.',
+                            '음성을 녹음하고 있습니다.',
                             style: TextStyle(
                               fontFamily: 'pretendard',
                               fontSize: 16,
@@ -476,6 +690,46 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                               color: Colors.red,
                             ),
                           ),
+                        ] else if (_voiceState == VoiceState.processing) ...[
+                          // 처리 상태 시각화
+                          SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Whisper AI가 음성을 분석중입니다.',
+                            style: TextStyle(
+                              fontFamily: 'pretendard',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          // 분석 결과 미리보기
+                          if (_currentSpeechText.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _currentSpeechText,
+                                style: const TextStyle(
+                                  fontFamily: 'pretendard',
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
                         ] else if (_voiceState == VoiceState.error) ...[
                           Container(
                             width: 80,
@@ -523,7 +777,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                                   ),
                                   const SizedBox(height: 12),
                                   const Text(
-                                    '무엇을 도와드릴까요?',
+                                    '무엇을 도와드릴까요?\n\n(Whisper AI 사용)',
                                     style: TextStyle(
                                       fontFamily: 'pretendard',
                                       fontSize: 16,
@@ -623,7 +877,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Image.asset(
+                      widgets.Image.asset(
                         'asset/image/speech_bubble.png',
                         fit: BoxFit.contain,
                         width: 360,
@@ -662,8 +916,24 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                 Column(
                   children: [
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         HapticFeedback.heavyImpact();
+
+                        // WebSocket 연결 정리
+                        if (_backendChannel != null) {
+                          _backendChannel!.sink.add(json.encode({
+                            'type': 'disconnect',
+                            'timestamp': DateTime.now().toIso8601String(),
+                          }));
+                          await _backendChannel!.sink.close();
+                        }
+
+                        // 녹음기 정리
+                        if (_recorder.isRecording) {
+                          await _recorder.stopRecorder();
+                        }
+                        await _recorder.closeRecorder();
+
                         Navigator.pop(context);
                       },
                       child: Container(
@@ -723,6 +993,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                                     ? Colors.red.withOpacity(0.3)
                                     : _voiceState == VoiceState.listening
                                     ? Colors.grey.withOpacity(0.3)
+                                    : _voiceState == VoiceState.processing
+                                    ? Colors.orange.withOpacity(0.3)
                                     : Colors.blue.withOpacity(0.3),
                                 blurRadius: 20,
                                 spreadRadius: 5,
@@ -750,7 +1022,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                       child: Text(
                         _getButtonText(),
                         style: TextStyle(
-                          color: _voiceState == VoiceState.listening
+                          color: _voiceState == VoiceState.listening || _voiceState == VoiceState.processing
                               ? Colors.grey
                               : _voiceState == VoiceState.error
                               ? Colors.red.shade300
