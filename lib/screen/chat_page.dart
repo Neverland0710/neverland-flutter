@@ -39,14 +39,14 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
     initializeDateFormatting('ko');
     _fetchRelation();
 
-    // ✅ 메시지를 다 불러온 후에 스크롤 이동
-    loadMessagesFromPrefs().then((_) {
+    // ✅ DB에서 메시지 불러오고 스크롤 이동까지 처리
+    loadMessagesFromDB().then((_) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom(); // 항상 최신 메시지 보이게
+        _scrollToBottom();
       });
     });
 
-
+    // 키보드가 올라오면 자동으로 스크롤
     _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
         Future.delayed(const Duration(milliseconds: 300), () {
@@ -88,31 +88,71 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
     }
   }
 
-  Future<void> loadMessagesFromPrefs() async {
+  Future<void> loadMessagesFromDB() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = prefs.getString('chat_messages');
-    if (encoded != null) {
-      final List<dynamic> decoded = jsonDecode(encoded);
-      setState(() {
-        _messages.clear(); // 기존 메시지 초기화
-        for (var msg in decoded) {
-          if (msg is Map<String, dynamic>) {
-            // ✅ image_path가 있으면 image로 File 객체 복원
-            if (msg.containsKey('image_path')) {
-              msg['image'] = File(msg['image_path']);
+    final authKeyId = prefs.getString('auth_key_id');
+
+    if (authKeyId == null) {
+      print("❌ auth_key_id 없음");
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.219.68:8086/chat/history?authKeyId=$authKeyId'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> history = jsonDecode(response.body);
+
+        setState(() {
+          _messages.clear();
+          DateTime? lastDate; // ✅ 날짜 구분을 위한 기준 변수
+
+          for (var msg in history.reversed) {
+            final sentAt = DateTime.parse(msg['sentAt']);
+            final dateLabel = DateFormat('y년 M월 d일', 'ko').format(sentAt);
+
+            // ✅ 날짜가 바뀔 때마다 날짜 메시지 삽입
+            if (lastDate == null ||
+                lastDate.year != sentAt.year ||
+                lastDate.month != sentAt.month ||
+                lastDate.day != sentAt.day) {
+              _messages.add({
+                'type': 'date',
+                'date': dateLabel,
+              });
+              lastDate = sentAt;
             }
-            _messages.add(msg);
+
+            _messages.add({
+              'type': 'message',
+              'sender': msg['sender'] == 'USER' ? '나' : '상대방',
+              'text': msg['message'],
+              'time': DateFormat('a hh:mm', 'ko').format(sentAt),
+            });
           }
-        }
-      });
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
+      } else {
+        print("❌ 대화 기록 불러오기 실패: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ 대화 기록 요청 예외: $e");
     }
   }
 
-  Future<void> saveMessagesToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(_messages);
-    await prefs.setString('chat_messages', encoded);
-  }
+
+
+
+  // Future<void> saveMessagesToPrefs() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final encoded = jsonEncode(_messages);
+  //   await prefs.setString('chat_messages', encoded);
+  // }
 
 
   /// 메시지 전송 함수
@@ -133,7 +173,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
       });
     });
 
-    await saveMessagesToPrefs();
+    //await saveMessagesToPrefs();
     _messageController.clear();
 
     // 2️⃣ 메시지를 우선 렌더링할 수 있도록 프레임 기다리기
@@ -194,7 +234,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
           });
         });
 
-        await saveMessagesToPrefs();
+        //await saveMessagesToPrefs();
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
 
       } else {
@@ -335,7 +375,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
       });
     });
 
-    await saveMessagesToPrefs(); // ✅ 저장
+    //await saveMessagesToPrefs(); // ✅ 저장
 
     Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
   }
@@ -391,6 +431,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
                 // 메시지 개수 + 타이핑 인디케이터 (타이핑 중일 때만)
                 itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, index) {
+                  // 1. 상대방이 타이핑 중일 때 맨 아래에 인디케이터 표시
                   if (_isTyping && index == 0) {
                     return Padding(
                       padding: const EdgeInsets.only(left: 12, bottom: 8),
@@ -411,57 +452,65 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
                     );
                   }
 
-                  // 실제 채팅 메시지 표시
+                  // 2. 실제 메시지 인덱스 (뒤에서부터 접근)
                   final reversedIndex = _messages.length - 1 - (index - (_isTyping ? 1 : 0));
                   final msg = _messages[reversedIndex];
-                  final isMe = msg['sender'] == '나'; // 내가 보낸 메시지인지 확인
+
+                  // 3. 날짜 구분 메시지
+                  if (msg['type'] == 'date') {
+                    return Center(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8E6FF),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          msg['date'],
+                          style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // 4. 일반 메시지 (텍스트 or 이미지)
+                  final isMe = msg['sender'] == '나';
+                  final isImage = msg['image_path'] != null;
 
                   return Align(
-                    // 내 메시지는 오른쪽, 상대방 메시지는 왼쪽 정렬
                     alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                     child: Column(
-                      // 시간 표시를 위한 정렬 (내 메시지는 오른쪽, 상대방은 왼쪽)
                       crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                       children: [
-                        // 메시지 말풍선
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 6),
-                          // 이미지 메시지는 패딩 없음, 텍스트 메시지는 패딩 추가
-                          padding: msg['image'] != null
-                              ? EdgeInsets.zero
-                              : const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                          padding: isImage ? EdgeInsets.zero : const EdgeInsets.fromLTRB(12, 12, 12, 12),
                           constraints: BoxConstraints(
-                            // 메시지 최대 너비는 화면의 70%
                             maxWidth: MediaQuery.of(context).size.width * 0.7,
                           ),
                           decoration: BoxDecoration(
-                            // 내 메시지는 보라색, 상대방 메시지는 회색
                             color: isMe ? const Color(0xFFBB9DF7) : const Color(0xFFF2F2F2),
-                            borderRadius: BorderRadius.circular(16), // 둥근 모서리
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          child: msg['image'] != null
-                              ? // 이미지 메시지 표시
-                          ClipRRect(
+                          child: isImage
+                              ? ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.file(
-                              msg['image'],
+                              File(msg['image_path']),
                               width: 160,
                               height: 160,
-                              fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 크롭
+                              fit: BoxFit.cover,
                             ),
                           )
-                              : // 텍스트 메시지 표시
-                          Text(
+                              : Text(
                             msg['text'] ?? '',
                             style: TextStyle(
-                              fontFamily: 'Pretendard',
                               fontSize: 14,
-                              // 내 메시지는 흰색, 상대방 메시지는 검은색
                               color: isMe ? Colors.white : Colors.black87,
                             ),
                           ),
                         ),
-                        // 메시지 전송 시간 표시
                         Text(
                           msg['time'] ?? '',
                           style: const TextStyle(fontSize: 11, color: Colors.grey),
@@ -470,6 +519,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
                     ),
                   );
                 },
+
               ),
             ),
 
