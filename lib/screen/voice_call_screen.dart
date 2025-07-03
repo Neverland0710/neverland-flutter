@@ -302,7 +302,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
         _simulateAIResponse();
 
         // 5초 대기
-        final waitTime = Duration(seconds: 5);
+        final waitTime = Duration(seconds: 60);
 
         await Future.delayed(waitTime);
 
@@ -613,9 +613,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
           // 말풍선 (상태에 따른 메시지)
           if (_voiceState != VoiceState.speaking)
             Positioned(
-              bottom: 180,
+              bottom: 185,
               left: 0,
-              right: 30,
+              right: 45,
               child: Center(
                 child: SizedBox(
                   width: 360,
@@ -667,8 +667,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                         Navigator.pop(context);
                       },
                       child: Container(
-                        width: 90,
-                        height: 90,
+                        width: 85,
+                        height: 85,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Colors.red.withOpacity(0.2),
