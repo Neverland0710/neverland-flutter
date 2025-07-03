@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 // 음성 통화 상태를 나타내는 열거형
 enum VoiceState {
@@ -254,9 +256,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                           top: 35,
                           child: SizedBox(
                             width: 240,
-                            child: Text(
-                              '말하기 버튼을 누르고 말씀해주세요',
-                              style: const TextStyle(
+                            child: const Text(
+                              '말하기 버튼을 누르고 말씀해주세요', // 대기 상태 메시지
+                              style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -272,9 +274,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                           top: 25,
                           child: SizedBox(
                             width: 240,
-                            child: Text(
-                              '말씀을 멈추고 답변을 들으시려면\n그만 말하기를 눌러주세요.',
-                              style: const TextStyle(
+                            child: const Text(
+                              '말씀을 멈추고 답변을 들으시려면\n그만 말하기를 눌러주세요.', // 듣기 상태 메시지
+                              style: TextStyle(
                                 fontFamily: 'Pretendard',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -327,7 +329,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                         style: TextStyle(
                           color: Colors.white,
                           fontFamily: 'pretendard',
-                          fontSize: 12,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -335,30 +337,34 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                 ),
 
                 // 말하기 버튼
-// 말하기 버튼
                 Column(
                   children: [
                     GestureDetector(
                       onTap: () {
-                        HapticFeedback.mediumImpact();
+                        HapticFeedback.mediumImpact();  // 햅틱 피드백을 추가하여 사용자 경험을 향상시킴
                         setState(() {
                           if (_voiceState == VoiceState.idle) {
-                            // ▶️ idle → speaking
+                            // ▶️ idle → speaking: 대기 상태에서 말하기 상태로 전환
                             _voiceState = VoiceState.speaking;
+
+                            // 말하기 상태일 때 애니메이션을 시작
+                            // Lottie 애니메이션을 초기화하고 재생
+                            _lottieController
+                              ..reset()  // 애니메이션을 처음 상태로 리셋
+                              ..forward();  // 애니메이션을 앞으로 재생
                           } else if (_voiceState == VoiceState.speaking) {
-                            // ▶️ speaking → listening
+                            // ▶️ speaking → listening: 말하기 상태에서 듣기 상태로 전환
                             _voiceState = VoiceState.listening;
 
-                            // ✅ 애니메이션은 여기서만 재생
-                            _lottieController
-                              ..reset()
-                              ..forward();
+                            // 듣기 상태에서는 애니메이션을 멈추기
+                            // 애니메이션이 반복되지 않도록 설정
+                            _lottieController.stop();  // 애니메이션을 멈춤
                           } else if (_voiceState == VoiceState.listening) {
-                            // ▶️ listening → idle
+                            // ▶️ listening → idle: 듣기 상태에서 대기 상태로 전환
                             _voiceState = VoiceState.idle;
 
-                            // ✅ 대기 상태로 돌아가면 애니메이션 중지
-                            _lottieController.stop();
+                            // 대기 상태로 돌아가면 애니메이션을 멈추기
+                            _lottieController.stop();  // 애니메이션을 멈추고 대기 상태로 돌아감
                           }
                         });
                       },
@@ -367,17 +373,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                         width: 150,
                         height: 150,
                         child: Lottie.asset(
-                          'asset/animation/record_pulse.json', // 🔁 마이크 애니메이션
-                          controller: _lottieController,
-                          fit: BoxFit.contain,
-                          repeat: false, // 재생은 수동 제어
+                          'asset/animation/record_pulse.json', // 🔁 마이크 애니메이션 파일 경로
+                          controller: _lottieController,  // 애니메이션 컨트롤러 연결
+                          fit: BoxFit.contain,  // 애니메이션이 영역에 맞게 조정되도록 설정
+                          repeat: false,  // 애니메이션이 자동으로 반복되지 않도록 설정
                           onLoaded: (composition) {
-                            // ✅ duration 설정만 수행, 재생은 setState에서만!
+                            // 애니메이션이 로드될 때, 애니메이션의 지속시간을 설정
                             _lottieController.duration = composition.duration;
                           },
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 10),
                     Transform.translate(
                       offset: Offset(0, -30),
@@ -386,7 +393,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
                         style: TextStyle(
                           color: Colors.white,
                           fontFamily: 'pretendard',
-                          fontSize: 12,
+                          fontSize: 14,
                         ),
                       ),
                     ),
