@@ -16,7 +16,7 @@ class RealTimeChatPage extends StatefulWidget {
   State<RealTimeChatPage> createState() => _RealTimeChatPageState();
 }
 
-class _RealTimeChatPageState extends State<RealTimeChatPage> {
+class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBindingObserver{
   // 메시지 입력 필드를 제어하는 컨트롤러
   final TextEditingController _messageController = TextEditingController();
 
@@ -31,24 +31,61 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
 
   // 상대방이 타이핑 중인지를 나타내는 상태 변수
   bool _isTyping = false;
-
+  String _relation = '...'; //API로 불러올 관계 텍스트
   @override
   void initState() {
     super.initState();
-
-    // ✅ 저장된 채팅 불러오기
-    loadMessagesFromPrefs(); // 🔥 이 줄 추가
-
-    // 한국어 날짜 포맷 초기화 (오전/오후 표시를 위해)
+    WidgetsBinding.instance.addObserver(this);
     initializeDateFormatting('ko');
+    _fetchRelation();
 
-    // 위젯이 완전히 빌드된 후 채팅 목록을 맨 아래로 스크롤
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
-    // 포커스 상태 변화를 감지하여 UI 업데이트 (키보드 올라올 때 등)
-    _focusNode.addListener(() {
-      setState(() {});
+    // ✅ 메시지를 다 불러온 후에 스크롤 이동
+    loadMessagesFromPrefs().then((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom(); // 항상 최신 메시지 보이게
+      });
     });
+
+
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        });
+      }
+    });
+  }
+  double _prevBottomInset = 0;
+
+  @override
+  void didChangeMetrics() {
+    final currentInset = MediaQuery.of(context).viewInsets.bottom;
+
+    if (currentInset != _prevBottomInset) {
+      _prevBottomInset = currentInset;
+
+      Future.microtask(() {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_scrollController.hasClients) return;
+
+          if (currentInset > 0) {
+            // 키보드 올라옴 → 부드럽게
+            _scrollController.animateTo(
+              _scrollController.position.minScrollExtent,
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOut,
+            );
+          } else {
+            // 키보드 내려감 → 즉시
+            _scrollController.jumpTo(
+              _scrollController.position.minScrollExtent,
+            );
+          }
+        });
+      });
+    }
   }
 
   Future<void> loadMessagesFromPrefs() async {
@@ -87,6 +124,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
     final now = DateTime.now();
     final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
 
+    // 1️⃣ 내 메시지 먼저 표시
     setState(() {
       _messages.add({
         "sender": "나",
@@ -95,12 +133,23 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
       });
     });
 
-    await saveMessagesToPrefs(); // ✅ 여기에 추가
-
+    await saveMessagesToPrefs();
     _messageController.clear();
-    Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
 
-    _sendReplyToServer(text); // ✅ 실제 서버 전송
+    // 2️⃣ 메시지를 우선 렌더링할 수 있도록 프레임 기다리기
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    // 3️⃣ 이제 타이핑 인디케이터 켜기
+    if (mounted) {
+      setState(() {
+        _isTyping = true;
+      });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    // 4️⃣ 서버 응답 요청
+    _sendReplyToServer(text);
   }
 
   Future<void> _sendReplyToServer(String userMessage) async {
@@ -137,6 +186,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
         final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
 
         setState(() {
+          _isTyping = false; // ✅ 응답 도착 후 타이핑 인디케이터 해제
           _messages.add({
             "sender": "상대방",
             "text": replyText,
@@ -144,64 +194,56 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
           });
         });
 
-        await saveMessagesToPrefs(); // ✅ 이 줄 추가
-
+        await saveMessagesToPrefs();
         Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+
       } else {
         print("❌ 서버 응답 실패: ${response.statusCode}");
       }
     } catch (e) {
       print("❌ 예외 발생: $e");
+      setState(() {
+        _isTyping = false; // ✅ 예외 시에도 인디케이터 해제
+      });
     }
   }
 
-  /// 상대방의 가짜 응답 메시지를 생성하는 함수
-  /// 실제 채팅 앱처럼 타이핑 인디케이터를 보여준 후 응답
-  void _sendFakeReply() {
-    // 미리 정의된 응답 메시지들
-    final responses = [
-      "응, 알겠어!",
-      "좋아~",
-      "지금 확인해볼게.",
-      "ㅎㅎ 고마워~",
-      "알았어!",
-    ];
 
-    // 응답 리스트를 섞어서 랜덤한 응답 선택
-    final reply = (responses..shuffle()).first;
+  Future<void> _fetchRelation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString("user_id");
 
-    // 타이핑 인디케이터 표시 시작
-    setState(() {
-      _isTyping = true;
-    });
+      if (userId == null) {
+        print("❌ userId 없음");
+        return;
+      }
 
-    // 3초 후 실제 응답 메시지 표시
-    Future.delayed(const Duration(seconds: 3), () {
-      final now = DateTime.now();
-      final formattedTime = DateFormat('a hh:mm', 'ko').format(now);
+      final url = Uri.parse("http://192.168.219.68:8086/chat/relation?userId=$userId");
+      final response = await http.get(url);
 
-      setState(() {
-        _isTyping = false; // 타이핑 인디케이터 숨김
-        _messages.add({
-          "sender": "상대방",
-          "text": reply,
-          "time": formattedTime,
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _relation = data['relation'] ?? '알 수 없음';
         });
-      });
-
-      // 새 메시지 추가 후 스크롤을 맨 아래로 이동
-      Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-    });
+      } else {
+        print("❌ 관계 불러오기 실패: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ 관계 요청 예외: $e");
+    }
   }
+
 
   /// 채팅 목록을 맨 아래로 스크롤하는 함수
   /// 새 메시지가 추가되었을 때 자동으로 스크롤
   void _scrollToBottom() {
-    if (_scrollController.hasClients) { // 스크롤 컨트롤러가 연결되어 있는지 확인
+    if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 80, // 최대 스크롤 위치 + 여유 공간
-        duration: const Duration(milliseconds: 300),     // 애니메이션 지속 시간
-        curve: Curves.easeOut,                           // 애니메이션 곡선
+        _scrollController.position.minScrollExtent,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
       );
     }
   }
@@ -253,7 +295,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
               color: const Color(0xFFFFFFFF), // 연한 파란색 배경
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFFBB9DF7), size: 32),
+            child: Icon(icon, color: const Color(0xFFA688FA), size: 32),
           ),
           const SizedBox(height: 8),
           // 옵션 라벨 텍스트
@@ -301,14 +343,41 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF), // 흰색 배경
+      resizeToAvoidBottomInset: true,
+      backgroundColor: const Color(0xFFE9E8FC), // 흰색 배경
 
       // 상단 앱바 (상대방 이름과 뒤로가기 버튼)
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFD6C7FF), // 앱바 배경색
-        leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
-        elevation: 0.5, // 약간의 그림자
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60), // 원하는 높이 지정
+        child: AppBar(
+          backgroundColor: const Color(0xFFD6C7FF),
+          elevation: 0.5,
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          leading: null,
+          title: Padding(
+            padding: const EdgeInsets.only(left: 5), // 좌측 여백
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center, // ✅ 세로 중앙 정렬
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, color: Colors.white, size: 32),
+                  onPressed: () => Navigator.pop(context, true),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 4), // 아이콘과 텍스트 간격
+                Text(
+                  _relation,
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
+
+
 
       body: SafeArea(
         child: Column(
@@ -316,18 +385,17 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
             // 채팅 메시지 목록 영역 (화면의 대부분을 차지)
             Expanded(
               child: ListView.builder(
+                reverse: true,
                 controller: _scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 // 메시지 개수 + 타이핑 인디케이터 (타이핑 중일 때만)
                 itemCount: _messages.length + (_isTyping ? 1 : 0),
                 itemBuilder: (context, index) {
-                  // 타이핑 인디케이터 표시 (가장 마지막 아이템이고 타이핑 중일 때)
-                  if (_isTyping && index == _messages.length) {
+                  if (_isTyping && index == 0) {
                     return Padding(
                       padding: const EdgeInsets.only(left: 12, bottom: 8),
                       child: Row(
                         children: const [
-                          // 작은 원형 아바타와 점점점 아이콘
                           CircleAvatar(
                             radius: 12,
                             backgroundColor: Color(0xFFE5EEF7),
@@ -344,7 +412,8 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                   }
 
                   // 실제 채팅 메시지 표시
-                  final msg = _messages[index];
+                  final reversedIndex = _messages.length - 1 - (index - (_isTyping ? 1 : 0));
+                  final msg = _messages[reversedIndex];
                   final isMe = msg['sender'] == '나'; // 내가 보낸 메시지인지 확인
 
                   return Align(
@@ -431,6 +500,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
                       child: TextField(
                         controller: _messageController,
                         focusNode: _focusNode,
+                        scrollPadding: EdgeInsets.zero,
                         decoration: const InputDecoration(
                           hintText: '메시지를 입력해주세요',
                           border: InputBorder.none, // 테두리 제거
@@ -454,5 +524,13 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> {
         ),
       ),
     );
+  }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _focusNode.dispose();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 }
