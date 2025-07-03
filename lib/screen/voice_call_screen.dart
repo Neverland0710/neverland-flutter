@@ -4,6 +4,12 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 // 음성 통화 상태를 나타내는 열거형
 enum VoiceState {
@@ -44,6 +50,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
   // 대화 기록
   List<Map<String, dynamic>> _conversations = [];
 
+  // ElevenLabs 및 음성 관련 (추가)
+  WebSocketChannel? _elevenLabsChannel;
+  FlutterSoundRecorder? _audioRecorder;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  // ElevenLabs 설정 (추가)
+  static String get _elevenLabsApiKey => dotenv.env['ELEVENLABS_API_KEY'] ?? '';
+  static const String _voiceId = 'YOUR_VOICE_ID'; // 고인의 목소리 ID
+
+  // Spring Boot 백엔드 WebSocket (추가)
+  WebSocketChannel? _backendChannel;
+  static const String _backendUrl = 'ws://your-backend-url/voice-call';
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +80,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
       });
     })..start();
 
-    // 마이크 권한 체크 시뮬레이션
+    // 마이크 권한 체크 및 ElevenLabs 초기화
     _checkPermissions();
   }
 
@@ -71,19 +90,79 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
     _ticker.dispose();
     _recordController.dispose();
     _buttonScaleController.dispose();
+    // ElevenLabs 관련 리소스 해제 (추가)
+    _audioRecorder?.closeRecorder();
+    _audioPlayer.dispose();
+    _elevenLabsChannel?.sink.close();
+    _backendChannel?.sink.close();
     super.dispose();
   }
 
-  // 권한 체크 시뮬레이션
+  // 권한 체크 및 ElevenLabs 초기화 (수정)
   Future<void> _checkPermissions() async {
     try {
-      // 실제로는 permission_handler 패키지 사용
-      await Future.delayed(Duration(milliseconds: 500));
-      // 권한이 있다고 가정
+      // 마이크 권한 요청
+      final status = await Permission.microphone.request();
+      if (status == PermissionStatus.granted) {
+        // FlutterSoundRecorder 초기화
+        _audioRecorder = FlutterSoundRecorder();
+        await _audioRecorder!.openRecorder();
+
+        // ElevenLabs 연결 (선택사항 - 백엔드가 준비되면 활성화)
+        // await _connectToElevenLabs();
+      } else {
+        throw Exception('마이크 권한이 필요합니다');
+      }
     } catch (e) {
       setState(() {
         _voiceState = VoiceState.error;
       });
+    }
+  }
+
+  // ElevenLabs WebSocket 연결 (추가)
+  Future<void> _connectToElevenLabs() async {
+    try {
+      final uri = 'wss://api.elevenlabs.io/v1/text-to-speech/$_voiceId/stream-input?model_id=eleven_turbo_v2';
+
+      _elevenLabsChannel = IOWebSocketChannel.connect(
+        uri,
+        headers: {
+          'xi-api-key': _elevenLabsApiKey,
+        },
+      );
+
+      _elevenLabsChannel!.stream.listen(
+            (data) {
+          _handleElevenLabsAudio(data);
+        },
+        onError: (error) {
+          print('ElevenLabs WebSocket Error: $error');
+        },
+      );
+    } catch (e) {
+      print('ElevenLabs connection failed: $e');
+    }
+  }
+
+  // ElevenLabs 음성 데이터 처리 (추가)
+  void _handleElevenLabsAudio(dynamic data) async {
+    try {
+      final audioData = json.decode(data);
+
+      if (audioData['audio'] != null) {
+        final audioBytes = base64Decode(audioData['audio']);
+        await _audioPlayer.play(BytesSource(audioBytes));
+
+        if (audioData['isFinal'] == true) {
+          setState(() {
+            _voiceState = VoiceState.speaking;
+            _recordController.repeat();
+          });
+        }
+      }
+    } catch (e) {
+      print('Audio processing error: $e');
     }
   }
 
@@ -126,7 +205,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
     }
   }
 
-  // AI 응답 시뮬레이션
+  // AI 응답 시뮬레이션 (기존 유지)
   void _simulateAIResponse() {
     final responses = [
       '안녕하세요! 무엇을 도와드릴까요?',
@@ -145,7 +224,37 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
     });
   }
 
-  // 버튼 클릭 처리
+  // 실제 음성 녹음 시작 (추가)
+  Future<void> _startRecording() async {
+    try {
+      if (_audioRecorder != null) {
+        await _audioRecorder!.startRecorder(
+          toFile: '/temp/recording.wav',
+          codec: Codec.pcm16WAV,
+          sampleRate: 16000,
+        );
+      }
+    } catch (e) {
+      print('Recording error: $e');
+    }
+  }
+
+  // 실제 음성 녹음 중지 (추가)
+  Future<void> _stopRecording() async {
+    try {
+      if (_audioRecorder != null) {
+        final path = await _audioRecorder!.stopRecorder();
+        if (path != null) {
+          // 여기서 백엔드로 음성 파일 전송 가능
+          print('Recording saved to: $path');
+        }
+      }
+    } catch (e) {
+      print('Stop recording error: $e');
+    }
+  }
+
+  // 버튼 클릭 처리 (수정: 실제 녹음 기능 추가)
   void _handleButtonPress() async {
     if (_voiceState == VoiceState.listening) {
       return; // 듣기 상태에서는 버튼 비활성화
@@ -161,10 +270,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
     try {
       setState(() {
         if (_voiceState == VoiceState.idle) {
-          // 첫 번째 또는 새로운 대화 시작
-          _voiceState = VoiceState.listening;
+          // 말하기 시작
+          _voiceState = VoiceState.speaking;
           _hasStartedConversation = true;
+          _recordController.repeat();
+          _startRecording(); // 실제 녹음 시작
+
+        } else if (_voiceState == VoiceState.speaking) {
+          // 말하기 중단
+          _voiceState = VoiceState.listening;
           _recordController.stop();
+          _stopRecording(); // 실제 녹음 중지
 
           // 사용자 입력 시뮬레이션
           _conversations.add({
@@ -173,10 +289,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
             'timestamp': DateTime.now(),
           });
 
-        } else if (_voiceState == VoiceState.speaking) {
-          // 말하기 중단
-          _voiceState = VoiceState.listening;
-          _recordController.stop();
         } else if (_voiceState == VoiceState.error) {
           // 에러 상태에서 재시도
           _voiceState = VoiceState.idle;
@@ -189,8 +301,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with TickerProviderSt
         // AI 응답 시뮬레이션
         _simulateAIResponse();
 
-        // 동적 대기 시간 (2-5초 랜덤)
-        final waitTime = Duration(seconds: 2 + (DateTime.now().millisecond % 3));
+        // 5초 대기
+        final waitTime = Duration(seconds: 5);
 
         await Future.delayed(waitTime);
 

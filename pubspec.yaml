@@ -46,6 +46,10 @@ dependencies:
   flutter_svg: ^2.0.10
   url_launcher: ^6.2.5
   web_socket_channel: ^2.4.0
+  audioplayers: ^5.2.1
+  flutter_sound: ^9.2.13        # ← record 대신 이걸로!
+  permission_handler: ^11.3.1   # ← 권한 처리용
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +70,7 @@ flutter:
   assets:
     - asset/image/
     - asset/animation/
+    - .env
   generate: true
 
   # The following line ensures that the Material Icons font is

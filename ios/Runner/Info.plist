@@ -45,5 +45,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>  <!-- 👈 여기에 추가! -->
+    <string>음성 통화를 위해 마이크 권한이 필요합니다</string>
 </dict>
 </plist>
