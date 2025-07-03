@@ -109,7 +109,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
           _messages.clear();
           DateTime? lastDate; // ✅ 날짜 구분을 위한 기준 변수
 
-          for (var msg in history.reversed) {
+          for (var msg in history) {
             final sentAt = DateTime.parse(msg['sentAt']);
             final dateLabel = DateFormat('y년 M월 d일', 'ko').format(sentAt);
 
