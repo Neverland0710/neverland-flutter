@@ -14,6 +14,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 // Firebase 설정 옵션을 포함한 파일 임포트
 import 'firebase_options.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 // 앱의 진입점(main 함수)
 void main() async {
@@ -25,6 +28,8 @@ void main() async {
   );
   // 한국어 날짜 포맷 데이터 초기화
   await initializeDateFormatting('ko');
+
+  await dotenv.load(fileName: ".env");
   // 앱 실행
   runApp(const MyApp());
 }
