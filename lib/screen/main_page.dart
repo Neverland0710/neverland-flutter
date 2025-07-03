@@ -315,253 +315,160 @@ class _MainPageState extends State<MainPage> {
                       style: TextStyle(
                         fontFamily: 'Pretendard',
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Color(0xFF6C4ED4),
+                        fontSize: 18,
+                        color: Color(0xFF6B4FBB),
                       ),
                     ),
                     const SizedBox(height: 12),
 
                     // 사진 앨범 카드
-                    GestureDetector(
-                      onTap: () async {
-                        // 사진 앨범 페이지로 이동
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PhotoAlbumPage(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: InkWell(
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
+                          );
+                          if (result == true) {
+                            _loadPhotos();
+                            _loadStatistics();
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.only(top: 25, left: 34, right: 34, bottom: 25),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.black12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        );
-                        // 페이지에서 돌아왔을 때 유품 개수 새로고침
-                        if (result == true) {
-                          _loadPhotos();       // 썸네일 다시 로드
-                          _loadStatistics();   // 통계 다시 로드
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Color(0xFFE0D7FF)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 사진 앨범 제목 영역
-                            Row(
-                              children: [
-                                Image.asset(
-                                  'asset/image/image.png',
-                                  width: 36,
-                                  height: 36,
-                                  color: Color(0xFFBB9DF7),
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
-                                    Text(
-                                      '사진 앨범',
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 상단 영역: 아이콘 + 제목 + 부제목 + 화살표
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.asset(
+                                    'asset/image/image.png',
+                                    width: 36,
+                                    height: 36,
+                                    color: const Color(0xFFBB9DF7),
+                                  ),
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: const [
+                                        Text(
+                                          '사진 앨범',
+                                          style: TextStyle(
+                                            fontFamily: 'Pretendard',
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          '소중한 추억들',
+                                          style: TextStyle(
+                                            fontFamily: 'Pretendard',
+                                            fontSize: 14,
+                                            color: Colors.black45,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      '소중한 추억들',
-                                      style: TextStyle(
-                                        fontFamily: 'Pretendard',
-                                        fontSize: 13,
-                                        color: Colors.black54,
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Colors.black38,
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              // 썸네일 미리보기
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: _photos.isEmpty
+                                      ? List.generate(3, (index) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1EBFF),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(Icons.add, color: Color(0xFFBB9DF7), size: 24),
+                                      ),
+                                    );
+                                  })
+                                      : [
+                                    ...List.generate(_photos.length, (index) {
+                                      final photo = _photos[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 8),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Image.network(
+                                            photo['imageUrl'],
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => Container(
+                                              color: Colors.grey[300],
+                                              width: 80,
+                                              height: 80,
+                                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1EBFF),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(Icons.add, color: Color(0xFFBB9DF7)),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const Spacer(), // ← 이걸로 오른쪽으로 밀고
-                                const Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                  color: Colors.black38,
-                                ), // ← 이게 > 아이콘
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            const SizedBox(height: 12),
-
-                            // 사진 미리보기 영역
-                            // 📜 사진 미리보기 박스 섹션 (가로 스크롤 가능한 형태)
-                            SingleChildScrollView(
-                              scrollDirection:
-                              Axis.horizontal, // ➡️ 수평 스크롤 가능하게 설정
-                              child: Row(
-                                children: _photos.isEmpty
-                                // 📦 사진이 없을 경우 - 기본 박스 3개 생성
-                                    ? List.generate(3, (index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(
-                                      right: 8,
-                                    ), // 👉 박스 사이 간격
-                                    child: GestureDetector(
-                                      // 첫 번째 박스만 탭 가능 (앨범 이동)
-                                      onTap: index == 0
-                                          ? () async {
-                                        final result =
-                                        await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                            const PhotoAlbumPage(),
-                                          ),
-                                        );
-                                        // ✅ 앨범에서 사진 추가 후 새로고침
-                                        if (result == true) {
-                                          _loadPhotos(); // 서버에서 다시 불러오기
-                                          setState(() {}); // UI 갱신
-                                        }
-                                      }
-                                          : null,
-                                      child: Container(
-                                        width: 100,
-                                        height: 100, // 📏 박스 크기
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFFF1EBFF,
-                                          ), // 🎨 연보라 배경
-                                          borderRadius:
-                                          BorderRadius.circular(
-                                            12,
-                                          ), // 🔘 모서리 둥글게
-                                        ),
-                                        child: const Icon(
-                                          Icons.add,
-                                          color: Color(0xFFBB9DF7),
-                                          size: 28,
-                                        ), // ➕ 아이콘
-                                      ),
-                                    ),
-                                  );
-                                })
-                                    :
-                                // 🖼️ 사진이 있는 경우 - 사진 썸네일 + 추가 버튼
-                                [
-                                  ...List.generate(_photos.length, (
-                                      index,
-                                      ) {
-                                    final photo =
-                                    _photos[index]; // 📸 각 사진 데이터
-                                    return Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 8,
-                                      ), // 👉 사진 사이 간격
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          // 📂 사진 클릭 시 앨범으로 이동
-                                          final result =
-                                          await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                              const PhotoAlbumPage(),
-                                            ),
-                                          );
-                                          if (result == true) {
-                                            _loadPhotos(); // 서버에서 다시 불러오기
-                                            setState(() {}); // UI 갱신
-                                          }
-                                        },
-                                        child: ClipRRect(
-                                          borderRadius:
-                                          BorderRadius.circular(
-                                            12,
-                                          ), // 🔘 모서리 둥글게
-                                          child: Image.network(
-                                            photo['imageUrl'], // 🌐 이미지 URL
-                                            width: 100,
-                                            height: 100,
-                                            fit:
-                                            BoxFit.cover, // 이미지 꽉 채우기
-                                            errorBuilder:
-                                                (
-                                                context,
-                                                error,
-                                                stackTrace,
-                                                ) => Container(
-                                              color: Colors
-                                                  .grey[300], // ❌ 로드 실패 시 회색 박스
-                                              width: 100,
-                                              height: 100,
-                                              child: const Icon(
-                                                Icons.broken_image,
-                                                color: Colors.grey,
-                                              ), // 🧱 대체 아이콘
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-
-                                  // ➕ 마지막에 추가 버튼 (항상 보이게)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      right: 8,
-                                    ), // 간격 유지
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        // 📂 + 버튼 탭 → 사진 앨범 페이지 이동
-                                        final result =
-                                        await Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                            const PhotoAlbumPage(),
-                                          ),
-                                        );
-                                        if (result == true) {
-                                          _loadPhotos(); // 갱신
-                                          setState(() {}); // UI 갱신
-                                        }
-                                      },
-                                      child: Container(
-                                        width: 100,
-                                        height: 100,
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFFF1EBFF,
-                                          ), // 연보라 박스
-                                          borderRadius:
-                                          BorderRadius.circular(
-                                            12,
-                                          ), // 둥글게
-                                        ),
-                                        child: const Icon(
-                                          Icons.add,
-                                          color: Color(0xFFBB9DF7),
-                                        ), // + 아이콘
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+
 
                     // 유품 기록 카드
-                    GestureDetector(
-                      // 🔘 클릭 시 KeepsakeScreen으로 이동
+                    _buildCardMenu(
+                      context,
+                      imagePath: 'asset/image/box.png',
+                      title: '유품 기록',
+                      subtitle: '의미있는 물건들',
+                      description: '시계, 반지, 책 등 특별한 유품들의 이야기를 기록합니다.',
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
@@ -575,93 +482,8 @@ class _MainPageState extends State<MainPage> {
                           setState(() {});  // UI 갱신
                         }
                       },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Color(0xFFE0D7FF)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-
-                        // 📦 Stack 사용 → 아이콘을 오른쪽 상단에 강제로 고정시키기 위함
-                        child: Stack(
-                          children: [
-                            // ✅ 텍스트 + 이미지 구성 Row (화살표 제외)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // 📍 유품 아이콘 이미지
-                                Image.asset(
-                                  'asset/image/box.png',
-                                  width: 32,
-                                  height: 32,
-                                ),
-                                const SizedBox(width: 12),
-
-                                // 📍 텍스트 묶음
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: const [
-                                      // 🟣 타이틀
-                                      Text(
-                                        '유품 기록',
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-
-                                      // 🔹 부제목
-                                      Text(
-                                        '의미있는 물건들',
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 13,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                      SizedBox(height: 2),
-
-                                      // 🔹 설명 텍스트
-                                      Text(
-                                        '시계, 반지, 책 등 특별한 유품들의 이야기를 기록합니다.',
-                                        style: TextStyle(
-                                          fontFamily: 'Pretendard',
-                                          fontSize: 13,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // 📌 화살표 아이콘을 오른쪽 상단에 강제 위치 고정
-                            const Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.black38,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
+
 
                     const SizedBox(height: 24),
 
@@ -712,7 +534,7 @@ class _MainPageState extends State<MainPage> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(top: 25, left: 34, right: 34, bottom: 25),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(15),
@@ -739,7 +561,7 @@ class _MainPageState extends State<MainPage> {
                     height: 36,
                     color: const Color(0xFFBB9DF7),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 20),
                   // 제목과 부제목
                   Expanded(
                     child: Column(
@@ -749,7 +571,7 @@ class _MainPageState extends State<MainPage> {
                           title,
                           style: const TextStyle(
                             fontFamily: 'Pretendard',
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -758,7 +580,7 @@ class _MainPageState extends State<MainPage> {
                           subtitle,
                           style: const TextStyle(
                             fontFamily: 'Pretendard',
-                            fontSize: 13,
+                            fontSize: 14,
                             color: Colors.black45,
                             fontWeight: FontWeight.w500,
                           ),
