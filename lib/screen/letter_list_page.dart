@@ -1,56 +1,98 @@
-import 'dart:async'; // ⏱ 자동 갱신을 위한 타이머
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:neverland_flutter/model/letter.dart';
 import 'package:neverland_flutter/screen/letter_detail_page.dart';
+import 'package:neverland_flutter/screen/letter_write_page.dart';
 import 'package:neverland_flutter/screen/main_page.dart';
 
-/// 편지 목록을 표시하는 StatefulWidget
-/// 사용자가 보낸 편지들의 목록을 보여주고, 답장 도착 상태를 실시간으로 업데이트
+/// 편지 목록을 보여주는 페이지
+/// 사용자가 작성한 편지들과 답장이 온 편지들을 확인할 수 있음
 class LetterListPage extends StatefulWidget {
-  final List<Letter> letters; // 표시할 편지 목록
-
-  const LetterListPage({super.key, required this.letters});
+  const LetterListPage({super.key});
 
   @override
   State<LetterListPage> createState() => _LetterListPageState();
 }
 
 class _LetterListPageState extends State<LetterListPage> {
-  Timer? _timer; // ✅ 타이머 저장할 변수 (자동 갱신용)
+  Timer? _timer; // 편지 도착 상태를 실시간으로 업데이트하기 위한 타이머
+  List<Letter> _letters = []; // 서버에서 가져온 편지 목록을 저장하는 리스트
 
   @override
   void initState() {
     super.initState();
+    // 페이지 로드 시 서버에서 편지 목록을 가져옴
+    _loadLettersFromServer();
 
-    // ⏱ 편지 답장 도착 여부 체크를 위해 1초마다 화면 갱신
-    // 실시간으로 편지 상태 변화를 반영하기 위한 타이머 설정
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      // 위젯이 아직 마운트된 상태인지 확인 (메모리 누수 방지)
-      if (mounted) {
-        setState(() {}); // 화면 다시 그리기
-      }
+    // 1초마다 화면을 갱신하여 편지 도착 시간을 실시간으로 업데이트
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {}); // 위젯이 마운트된 상태에서만 업데이트
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // ✅ 위젯이 파괴될 때 타이머 종료 (메모리 누수 방지)
+    // 메모리 누수 방지를 위해 타이머 해제
+    _timer?.cancel();
     super.dispose();
+  }
+
+  /// 서버에서 편지 목록을 가져오는 함수
+  Future<void> _loadLettersFromServer() async {
+    // SharedPreferences에서 인증키 가져오기
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id');
+
+    // 인증키가 없으면 함수 종료
+    if (authKeyId == null || authKeyId.isEmpty) {
+      print('❌ auth_key_id 없음');
+      return;
+    }
+
+    try {
+      // 서버 API 호출 - 편지 목록 요청
+      final response = await http.get(
+        Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
+      );
+
+      // HTTP 응답이 성공(200-299)인 경우
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // JSON 응답을 파싱하여 List<dynamic>으로 변환
+        final List<dynamic> jsonList = jsonDecode(response.body);
+
+        // 상태 업데이트 - JSON 데이터를 Letter 객체로 변환
+        setState(() {
+          _letters = jsonList.map((e) {
+            return Letter(
+              title: e['title'],           // 편지 제목
+              content: e['content'],       // 편지 내용
+              createdAt: DateTime.parse(e['createdAt']), // 작성 시간
+            );
+          }).toList();
+        });
+      } else {
+        // HTTP 에러 응답 처리
+        print('❌ 서버 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      // 네트워크 오류 또는 기타 예외 처리
+      print('❌ 네트워크 오류: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 배경색을 흰색으로 설정
-      backgroundColor: const Color(0xFFFFFFFF),
-
-      // 상단 앱바 설정
+      backgroundColor: const Color(0xFFFFFFFF), // 배경색 설정 (흰색)
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFFFFF), // 앱바 배경색 흰색
+        backgroundColor: const Color(0xFFFFFFFF), // 앱바 배경색
         elevation: 0, // 그림자 제거
-        leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
+        leading: const BackButton(color: Colors.black), // 뒤로 가기 버튼
         title: const Text(
-          '하늘에서 온 편지', // 앱바 제목
+          '하늘에서 온 편지',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -59,45 +101,65 @@ class _LetterListPageState extends State<LetterListPage> {
           ),
         ),
       ),
-
       body: Padding(
-        padding: const EdgeInsets.all(20), // 전체 패딩 20px
+        padding: const EdgeInsets.all(20), // 전체 여백 설정
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 📦 편지 총 개수 표시
-            Text(
-                '총 ${widget.letters.length}건',
-                style: const TextStyle(fontSize: 14)
-            ),
+            // 편지 총 개수 표시
+            Text('총 ${_letters.length}건', style: const TextStyle(fontSize: 14)),
             const Divider(height: 20), // 구분선
 
-            // 📬 편지 목록을 스크롤 가능한 리스트로 표시
+            // 편지 작성하기 버튼
+            ElevatedButton(
+              onPressed: () async {
+                // 편지 작성 페이지로 이동하고 결과 받기
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LetterWritePage()),
+                );
+
+                if (result == true) {
+                  _loadLettersFromServer();  // 편지 목록 새로고침
+                }
+
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                '편지 작성하기',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20), // 간격
+
+            // 편지 목록을 보여주는 리스트뷰
             Expanded(
               child: ListView.builder(
-                itemCount: widget.letters.length, // 편지 개수만큼 리스트 아이템 생성
+                itemCount: _letters.length, // 편지 개수만큼 리스트 생성
                 itemBuilder: (context, index) {
-                  final letter = widget.letters[index]; // 현재 편지 객체
-                  final isArrived = letter.isArrived; // 답장 도착 여부
+                  final letter = _letters[index]; // 현재 인덱스의 편지
+                  final isArrived = letter.isArrived; // 답장 도착 여부 확인
 
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0), // 각 아이템 하단 여백
+                    padding: const EdgeInsets.only(bottom: 12.0),
                     child: Container(
-                      // 편지 아이템 컨테이너 스타일링
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        // 답장 도착 여부에 따른 배경색 변경
-                        color: isArrived
-                            ? Colors.white      // 답장 도착: 흰색
-                            : Colors.grey[300], // 답장 대기: 회색
-                        borderRadius: BorderRadius.circular(12), // 모서리 둥글게
+                        // 답장이 도착했으면 흰색, 아니면 회색 배경
+                        color: isArrived ? Colors.white : Colors.grey[300],
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween, // 양쪽 끝 정렬
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // 📝 편지 정보 영역 (제목 + 날짜)
+                          // 편지 정보 (제목, 날짜)
                           Column(
-                            crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // 편지 제목
                               Text(
@@ -106,37 +168,31 @@ class _LetterListPageState extends State<LetterListPage> {
                                   fontWeight: FontWeight.bold,
                                   fontFamily: 'Pretendard',
                                   // 답장 도착 여부에 따른 텍스트 색상 변경
-                                  color: isArrived
-                                      ? Colors.black      // 답장 도착: 검은색
-                                      : Colors.black45,   // 답장 대기: 연한 검은색
+                                  color: isArrived ? Colors.black : Colors.black45,
                                 ),
                               ),
-                              const SizedBox(height: 4), // 제목과 날짜 사이 여백
-
+                              const SizedBox(height: 4),
                               // 편지 작성 날짜
                               Text(
                                 letter.formattedDate,
                                 style: TextStyle(
                                   fontSize: 13,
                                   // 답장 도착 여부에 따른 날짜 색상 변경
-                                  color: isArrived
-                                      ? Colors.grey       // 답장 도착: 회색
-                                      : Colors.grey[600], // 답장 대기: 진한 회색
+                                  color: isArrived ? Colors.grey : Colors.grey[600],
                                 ),
                               ),
                             ],
                           ),
-
-                          // 📨 편지 상세보기 버튼
+                          // 답장 확인 버튼
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8), // 모서리 둥글게
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            // 버튼 클릭 시 편지 상세 페이지로 이동
                             onPressed: () {
+                              // 편지 상세 페이지로 이동
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -156,39 +212,34 @@ class _LetterListPageState extends State<LetterListPage> {
                 },
               ),
             ),
+            const SizedBox(height: 20), // 간격
 
-            const SizedBox(height: 20), // 리스트와 버튼 사이 여백
-
-            // 📝 메인 페이지로 돌아가기 버튼
+            // 메인으로 돌아가기 버튼
             Padding(
-              padding: const EdgeInsets.only(bottom: 42), // 하단 여백 42px
+              padding: const EdgeInsets.only(bottom: 42),
               child: SizedBox(
                 width: double.infinity, // 전체 너비 사용
-                height: 48, // 버튼 높이 고정
+                height: 48, // 버튼 높이
                 child: ElevatedButton(
                   onPressed: () {
                     // 모든 이전 페이지를 제거하고 메인 페이지로 이동
-                    // 편지 목록에서 왔다는 정보를 전달 (fromLetter: true)
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const MainPage(fromLetter: true)
-                      ), // ✅ 편지에서 왔다는 플래그 전달
+                        builder: (_) => const MainPage(fromLetter: true),
+                      ),
                           (route) => false, // 모든 이전 라우트 제거
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12), // 모서리 둥글게
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
                     '메인으로 돌아가기',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold
-                    ),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
