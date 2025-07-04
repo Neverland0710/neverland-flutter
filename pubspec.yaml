@@ -1,54 +1,102 @@
+# 앱 이름 및 설명
 name: neverland_flutter
 description: "A new Flutter project."
+
+# pub.dev 업로드 방지
 publish_to: 'none'
 
+# 앱 버전 (형식: version_code+build_number)
 version: 1.0.0+1
 
+# Dart SDK 최소 요구 버전
 environment:
   sdk: ^3.8.0
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # 다국어 지원 (flutter_localizations + intl)
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
+
+  # 이미지 선택 (카메라, 갤러리)
   image_picker: ^1.0.7
-  # Firebase 패키지들
-  firebase_core: ^2.31.0
-  firebase_auth: ^4.20.0
+
+  # ✅ Firebase 관련 패키지
+  firebase_core: ^2.31.0        # Firebase 초기화 필수 패키지
+  firebase_auth: ^4.20.0        # Firebase 인증 (Google 로그인 등)
+
+  # HTTP 통신 (REST API 등)
   http: ^1.1.0
+
+  # 점선 테두리 위젯
   dotted_border: ^2.1.0
+
+  # iOS 스타일 아이콘
   cupertino_icons: ^1.0.8
+
+  # Google 로그인용
   google_sign_in: ^6.1.5
+
+  # 보안 저장소 (토큰 등 저장)
   flutter_secure_storage: ^9.0.0
+
+  # 간단한 key-value 저장 (로그인 유지, 설정 등)
   shared_preferences: ^2.2.2
+
+  # Lottie 애니메이션
   lottie: ^2.7.0
+
+  # SVG 파일 표시용
   flutter_svg: ^2.0.10
+
+  # 외부 링크 열기 (전화, 웹, 이메일 등)
   url_launcher: ^6.2.5
+
+  # WebSocket 통신 (실시간 채팅 등)
   web_socket_channel: ^2.4.0
+
+  # 오디오 재생
   audioplayers: ^6.0.0
+
+  # 오디오 녹음 (Whisper STT 용)
   flutter_sound: ^9.2.13
+
+  # 권한 요청 처리 (마이크, 저장소 등)
   permission_handler: ^11.3.1
+
+  # 환경변수(.env) 사용용
   flutter_dotenv: ^5.1.0
 
-  # 최신 안정화된 녹음 패키지
-  #record: ^4.0.0
+  # 임시/앱 내부 파일 접근 (녹음 파일 저장 등)
   path_provider: ^2.1.2
+
+  # 🎙️ 예전 사용했던 record 패키지 (현재 주석 처리됨)
+  # record: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # 린트 설정 (코딩 스타일 검사)
   flutter_lints: ^5.0.0
 
 flutter:
+  # 앱에서 사용할 리소스 등록
   assets:
     - asset/image/
     - asset/animation/
     - .env
+
+  # 코드 생성기 사용 여부
   generate: true
 
+  # 머티리얼 디자인 사용
   uses-material-design: true
+
+  # 커스텀 폰트 등록 (Pretendard)
   fonts:
     - family: pretendard
       fonts:
@@ -60,7 +108,7 @@ flutter:
         - asset: asset/font/Pretendard-Bold.ttf
           weight: 700
 
-# 패키지 충돌 해결을 위한 의존성 재정의
+# ✅ 패키지 충돌 해결용 수동 재정의 (주의해서 사용)
 dependency_overrides:
-  js: ^0.7.1
-  firebase_auth_platform_interface: ^7.0.0
+  js: ^0.7.1                                # Firebase Web 의존성 버전 충돌 방지
+  firebase_auth_platform_interface: ^7.0.0 # 강제 호환성 유지 (Pigeon 오류 방지용)
