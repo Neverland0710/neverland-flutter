@@ -260,7 +260,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
   Future<String?> _uploadImageToServer(File imageFile) async {
     // ✅ SharedPreferences에서 authKeyId 가져오기
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null || authKeyId.isEmpty) {
       print('❌ auth_key_id 가 없습니다.');
@@ -271,7 +271,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
     final request = http.MultipartRequest('POST', uri);
 
     // ✅ 텍스트 데이터 설정
-    request.fields['auth_key_id'] = authKeyId;
+    request.fields['authKeyId'] = authKeyId;
     request.fields['item_name'] = _titleController.text;
     request.fields['description'] = _descriptionController.text;
     request.fields['acquisition_period'] = _periodController.text;

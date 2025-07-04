@@ -90,7 +90,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
 
   Future<void> loadMessagesFromDB() async {
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null) {
       print("❌ auth_key_id 없음");
@@ -197,7 +197,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final authKeyId = prefs.getString("auth_key_id"); // ✅ 여기도 정확히
+      final authKeyId = prefs.getString("authKeyId"); // ✅ 여기도 정확히
       final userId = prefs.getString("user_id");
 
       if (authKeyId == null || userId == null) {
@@ -211,7 +211,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "auth_key_id": authKeyId,
+          "authKeyId": authKeyId,
           "user_id": userId,
           "user_input": userMessage,
         }),

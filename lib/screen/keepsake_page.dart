@@ -65,7 +65,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
   /// [imageUrl] - 삭제할 유품의 이미지 파일명
   Future<void> _deleteKeepsake(String imageUrl) async {
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null || authKeyId.isEmpty) {
       print('❌ 인증 키가 없습니다.');
@@ -74,7 +74,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
 
     final uri = Uri.parse('http://192.168.219.68:8086/keepsake/delete')
         .replace(queryParameters: {
-      'auth_key_id': authKeyId,
+      'authKeyId': authKeyId,
       'imageUrl': imageUrl,
     });
 
@@ -146,14 +146,14 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
   /// 서버에서 유품 목록을 가져오는 함수
   Future<void> fetchKeepsakes() async {
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null) {
       print('❌ 저장된 인증 키가 없습니다.');
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/list?auth_key_id=$authKeyId');
+    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/list?authKeyId=$authKeyId');
     final response = await http.get(uri);
 
     print('📡 요청 상태: ${response.statusCode}');

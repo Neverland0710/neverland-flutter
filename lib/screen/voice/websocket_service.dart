@@ -46,7 +46,7 @@ class WebSocketService {
   Future<void> connect() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final authKeyId = prefs.getString('auth_key_id') ?? '';
+      final authKeyId = prefs.getString('authKeyId') ?? '';
       final wsUrl = _backendUrl;
 
       _channel = IOWebSocketChannel.connect(Uri.parse(wsUrl));
