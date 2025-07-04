@@ -33,7 +33,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
 
         print('🔑 인증 응답 데이터: $data');
 
-        final authKeyId = data['auth_key_id'];
+        final authKeyId = data['authKeyId'];
         final userId = data['userId'];
         final deceasedId = data['deceasedId'];
 
@@ -43,7 +43,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
 
         if (authKeyId != null && userId != null && deceasedId != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_key_id', authKeyId);
+          await prefs.setString('authKeyId', authKeyId);
           await prefs.setString('user_id', userId);
           await prefs.setString('deceased_id', deceasedId);
 

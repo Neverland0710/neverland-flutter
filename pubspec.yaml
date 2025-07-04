@@ -59,7 +59,8 @@ dependencies:
   web_socket_channel: ^2.4.0
 
   # 오디오 재생
-  audioplayers: ^6.0.0
+  audioplayers: ^5.2.1
+  audio_session: ^0.1.13
 
   # 오디오 녹음 (Whisper STT 용)
   flutter_sound: ^9.2.13

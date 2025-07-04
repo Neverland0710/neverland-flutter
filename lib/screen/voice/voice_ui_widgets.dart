@@ -20,12 +20,14 @@ class UserInfoHeader extends StatelessWidget {
   final VoiceState voiceState;    // 현재 음성 상태
   final Duration callDuration;    // 통화 지속 시간
   final bool whisperEnabled;      // Whisper 서비스 활성화 여부
+  final String userName;
 
   const UserInfoHeader({
     super.key,
     required this.voiceState,
     required this.callDuration,
     required this.whisperEnabled,
+    required this.userName,
   });
 
   @override
@@ -69,12 +71,12 @@ class UserInfoHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 사용자 이름
-                  const Text(
-                    '정동연',
-                    style: TextStyle(
+                  Text(
+                    userName, // 🔹 하드코딩된 '정동연' → 동적 값
+                    style: const TextStyle(
                       fontFamily: 'pretendard',
                       fontWeight: FontWeight.w700,
-                      fontSize: 18,
+                      fontSize: 20,
                       color: Colors.white,
                     ),
                   ),
@@ -103,7 +105,7 @@ class UserInfoHeader extends StatelessWidget {
                         VoiceStateHelper.formatDuration(callDuration),
                         style: const TextStyle(
                           fontFamily: 'pretendard',
-                          fontSize: 14,
+                          fontSize: 16,
                           color: Colors.white,
                         ),
                       ),
@@ -130,11 +132,13 @@ class UserInfoHeader extends StatelessWidget {
 class VoiceStateVisualization extends StatelessWidget {
   final VoiceState voiceState;        // 현재 음성 상태
   final String currentSpeechText;     // 현재 인식된 텍스트
+  final String relation;
 
   const VoiceStateVisualization({
     super.key,
     required this.voiceState,
     required this.currentSpeechText,
+    required this.relation,
   });
 
   @override
@@ -155,9 +159,9 @@ class VoiceStateVisualization extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'AI가 답변하고 있습니다.',
-              style: TextStyle(
+            Text(
+              '\'$relation\'가(이) 답변을 준비하고 있습니다.',
+              style: const TextStyle(
                 fontFamily: 'pretendard',
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -217,7 +221,7 @@ class VoiceStateVisualization extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Whisper AI가 음성을 분석중입니다.',
+              '\'나\'의 말을 듣고 있습니다.',
               style: TextStyle(
                 fontFamily: 'pretendard',
                 fontSize: 16,
@@ -309,22 +313,12 @@ class ConversationContent extends StatelessWidget {
     if (!hasStartedConversation) {
       return const Column(
         children: [
+
           Text(
-            '안녕하세요! 😊',
+            '\'말하기\' 버튼을 누르고 말을 걸어보세요!',
             style: TextStyle(
               fontFamily: 'pretendard',
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              color: Colors.black87,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 12),
-          Text(
-            '무엇을 도와드릴까요?\n\n(Whisper AI 사용)',
-            style: TextStyle(
-              fontFamily: 'pretendard',
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.grey,
             ),
             textAlign: TextAlign.center,
@@ -427,15 +421,18 @@ class SpeechBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 말하는 중일 때는 말풍선 숨김
-    if (voiceState == VoiceState.speaking) {
+    final message = VoiceStateHelper.getBubbleMessage(voiceState, hasStartedConversation);
+
+    // 말하는 중 또는 listening 상태이거나 메시지가 없으면 말풍선 숨김
+    if (voiceState == VoiceState.speaking || message.isEmpty) {
       return const SizedBox.shrink();
     }
 
+
     return Positioned(
-      bottom: 185,  // 하단에서 185px 위치
+      bottom: 185,
       left: 0,
-      right: 45,    // 오른쪽에 45px 여백 (비대칭 디자인)
+      right: 45,
       child: Center(
         child: SizedBox(
           width: 360,
@@ -443,21 +440,17 @@ class SpeechBubble extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 말풍선 배경 이미지
               widgets.Image.asset(
                 'asset/image/speech_bubble.png',
                 fit: BoxFit.contain,
                 width: 360,
               ),
-
-              // 말풍선 내부 텍스트
               Positioned(
-                top: 25,  // 말풍선 내부에서 위쪽 여백
+                top: 25,
                 child: SizedBox(
-                  width: 240,  // 텍스트 영역 너비
+                  width: 240,
                   child: Text(
-                    // 상태에 따른 메시지 표시
-                    VoiceStateHelper.getBubbleMessage(voiceState, hasStartedConversation),
+                    message,
                     style: const TextStyle(
                       fontFamily: 'Pretendard',
                       fontSize: 14,
