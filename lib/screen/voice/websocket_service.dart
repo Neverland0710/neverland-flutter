@@ -32,24 +32,23 @@ class WebSocketService {
   // WebSocket 백엔드 서버에 연결
   Future<void> connect() async {
     try {
-      // SharedPreferences에서 authKeyId 불러옴
       final prefs = await SharedPreferences.getInstance();
-      final authKeyId = prefs.getString('authKeyId') ?? '';
+      final authKeyId = prefs.getString('auth_key_id') ?? '';
 
-      // 쿼리 파라미터 포함된 URI 구성
-      final wsUri = Uri.parse(_backendUrl);
-      final updatedUri = Uri(
-        scheme: wsUri.scheme,
-        host: wsUri.host,
-        port: wsUri.port,
-        path: wsUri.path,
-        queryParameters: {
-          'authKeyId': authKeyId,
-        },
-      );
+      final wsUrl = dotenv.env['BACKEND_URL'] ?? 'ws://localhost:8080/ws/audio';
 
-      // WebSocket 연결
-      _channel = IOWebSocketChannel.connect(updatedUri.toString());
+      _channel = IOWebSocketChannel.connect(Uri.parse(wsUrl));
+
+// 연결 직후 인증 메시지 전송
+      _channel!.sink.add(jsonEncode({
+        'type': 'auth',
+        'authKeyId': authKeyId,
+        'timestamp': DateTime.now().toIso8601String(),
+      }));
+      print('📡 WebSocket URL: $wsUrl');
+      print('🔐 인증 키: $authKeyId');
+
+
 
       // 연결 후 수신 스트림 처리
       _channel!.stream.listen(
