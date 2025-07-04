@@ -16,23 +16,35 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 // 앱의 진입점(main 함수)
 void main() async {
   // Flutter 엔진과 위젯 바인딩 초기화
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase 초기화 (Firebase 설정 옵션 사용)
+
+  // 🔍 SharedPreferences에 저장된 키/값 출력 (디버깅용)
+  final prefs = await SharedPreferences.getInstance();
+  prefs.getKeys().forEach((key) {
+    final value = prefs.get(key); // 모든 타입 대응
+    print('🔍 Key: $key → $value');
+  });
+
+  // Firebase 초기화
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   // 한국어 날짜 포맷 데이터 초기화
   await initializeDateFormatting('ko');
 
+  // .env 로딩
   await dotenv.load(fileName: ".env");
+
   // 앱 실행
   runApp(const MyApp());
 }
+
 
 // 앱의 루트 위젯을 정의하는 StatelessWidget
 class MyApp extends StatelessWidget {

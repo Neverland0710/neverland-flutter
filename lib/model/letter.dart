@@ -1,9 +1,12 @@
+import 'package:intl/intl.dart';
+
 class Letter {
   final String id;
   final String title;
   final String content;
   final DateTime createdAt;
   final String? replyContent;
+  final String? deliveryStatus; // 추가: 배송 상태
 
   Letter({
     required this.id,
@@ -11,32 +14,60 @@ class Letter {
     required this.content,
     required this.createdAt,
     this.replyContent,
+    this.deliveryStatus,
   });
 
+  // 서버 응답 구조에 맞게 JSON 파싱 수정
   factory Letter.fromJson(Map<String, dynamic> json) {
-    print('JSON 파싱: $json');
     return Letter(
-      id: json['id'] ?? '',
+      id: json['letterId'] ?? json['id'], // 서버에서는 letterId 사용
       title: json['title'] ?? '',
       content: json['content'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toString()),
-      replyContent: json['replyContent'] as String?,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      replyContent: json['replyContent'], // 서버에서 직접 제공
+      deliveryStatus: json['deliveryStatus'],
     );
   }
 
-  // 클라이언트에서 3초 후 도착으로 테스트 (실제 배포 시 24시간으로 변경)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'content': content,
+      'createdAt': createdAt.toIso8601String(),
+      'replyContent': replyContent,
+      'deliveryStatus': deliveryStatus,
+    };
+  }
+
+  // 답장 도착 여부 확인 - deliveryStatus 기반으로 판단
   bool get isArrived {
-    return DateTime.now().difference(createdAt).inSeconds >= 3;
+    return deliveryStatus == 'DELIVERED' && replyContent != null && replyContent!.isNotEmpty;
   }
 
-  // 실제 배포 시 사용
-  // bool get isArrived {
-  //   return DateTime.now().difference(createdAt).inHours >= 24;
-  // }
-
+  // 날짜 포맷팅
   String get formattedDate {
-    return '${createdAt.year}. ${createdAt.month.toString().padLeft(2, '0')}. ${createdAt.day.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy.MM.dd').format(createdAt);
   }
 
-  bool get hasReply => replyContent != null && replyContent!.isNotEmpty && isArrived;
+  // copyWith 메서드 수정
+  Letter copyWith({
+    String? id,
+    String? title,
+    String? content,
+    DateTime? createdAt,
+    String? replyContent,
+    String? deliveryStatus,
+  }) {
+    return Letter(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      replyContent: replyContent ?? this.replyContent,
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+    );
+  }
 }

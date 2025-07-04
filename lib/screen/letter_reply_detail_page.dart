@@ -25,7 +25,7 @@ class LetterReplyDetailPage extends StatelessWidget {
           '답장 보기', // 앱바 제목
           style: TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.bold, // FontWeight.bold 사용
             fontFamily: 'Pretendard',
             color: Colors.black,
           ),
@@ -58,7 +58,7 @@ class LetterReplyDetailPage extends StatelessWidget {
             ),
 
             child: Column(
-              mainAxisSize: MainAxisSize.min, // ✅ 카드가 내용 크기만큼만 차지
+              mainAxisSize: MainAxisSize.min, // 카드가 내용 크기만큼만 차지
               crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
               children: [
                 // 답장 제목 영역
