@@ -8,8 +8,6 @@ import 'package:neverland_flutter/screen/letter_detail_page.dart';
 import 'package:neverland_flutter/screen/letter_write_page.dart';
 import 'package:neverland_flutter/screen/main_page.dart';
 
-/// 편지 목록을 표시하는 페이지
-/// 사용자가 작성한 편지들의 목록을 보여주고, 편지 작성 및 상세 조회 기능을 제공
 class LetterListPage extends StatefulWidget {
   const LetterListPage({super.key});
 
@@ -18,20 +16,14 @@ class LetterListPage extends StatefulWidget {
 }
 
 class _LetterListPageState extends State<LetterListPage> {
-  /// 1초마다 화면 업데이트를 위한 타이머
   Timer? _timer;
-
-  /// 서버에서 가져온 편지 목록을 저장하는 리스트
   List<Letter> _letters = [];
 
   @override
   void initState() {
     super.initState();
-    // 페이지 초기화 시 서버에서 편지 목록 로드
     _loadLettersFromServer();
 
-    // 1초마다 화면을 업데이트하는 타이머 시작
-    // 편지 도착 시간 표시를 실시간으로 업데이트하기 위함
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -39,51 +31,190 @@ class _LetterListPageState extends State<LetterListPage> {
 
   @override
   void dispose() {
-    // 페이지 종료 시 타이머 정리
     _timer?.cancel();
     super.dispose();
   }
 
-  /// 서버에서 편지 목록을 가져오는 비동기 함수
   Future<void> _loadLettersFromServer() async {
-    // SharedPreferences에서 사용자 인증 키 가져오기
     final prefs = await SharedPreferences.getInstance();
     final authKeyId = prefs.getString('auth_key_id') ?? 'default_user_id';
 
     try {
-      // 서버 API 호출하여 편지 목록 요청
       final response = await http.get(
         Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
       );
 
-      // HTTP 응답 성공 시 (200-299 상태 코드)
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        // JSON 응답을 파싱하여 편지 목록으로 변환
         final List<dynamic> jsonList = jsonDecode(response.body);
         setState(() {
           _letters = jsonList.map((e) => Letter.fromJson(e)).toList();
         });
       } else {
-        // 서버 오류 시 로그 출력
         print('❌ 서버 오류: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      // 네트워크 오류 시 로그 출력
       print('❌ 네트워크 오류: $e');
     }
+  }
+
+  // 편지를 서버에 전송하는 함수
+  Future<Letter?> _sendLetterToServer(Letter letter) async {
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id') ?? '';
+    final userId = prefs.getString('user_id') ?? '';
+
+    print('📦 전송 전 authKeyId: $authKeyId');
+    print('📦 전송 전 userId: $userId');
+
+    if (authKeyId.isEmpty || userId.isEmpty) {
+      print('❗ authKeyId 또는 userId가 비어있습니다.');
+      return null;
+    }
+
+    // 성공한 방식: snake_case 사용
+    final requestBody = {
+      'user_id': userId,
+      'auth_key_id': authKeyId,
+      'title': letter.title,
+      'content': letter.content,
+      'created_at': letter.createdAt.toIso8601String(),
+    };
+
+    print('📦 전송할 데이터: ${jsonEncode(requestBody)}');
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.219.68:8086/letter/send'),
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      print('📦 응답 상태 코드: ${response.statusCode}');
+      print('📦 응답 본문: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('✅ 편지 전송 성공');
+
+        // 응답이 비어있거나 JSON이 아닐 수 있으므로 안전하게 처리
+        try {
+          if (response.body.isNotEmpty && response.body.trim().startsWith('{')) {
+            final responseData = jsonDecode(response.body);
+            return Letter.fromJson(responseData);
+          } else {
+            // 응답이 JSON이 아니라면 기본 Letter 객체 반환
+            print('📦 응답이 JSON 형식이 아님, 기본 편지 객체 생성');
+            return Letter(
+              id: letter.id,
+              title: letter.title,
+              content: letter.content,
+              createdAt: letter.createdAt,
+              deliveryStatus: 'SENT',
+              replyContent: null,
+            );
+          }
+        } catch (parseError) {
+          print('📦 응답 파싱 오류: $parseError');
+          // 파싱 실패해도 기본 편지 객체 반환
+          return Letter(
+            id: letter.id,
+            title: letter.title,
+            content: letter.content,
+            createdAt: letter.createdAt,
+            deliveryStatus: 'SENT',
+            replyContent: null,
+          );
+        }
+      } else {
+        print('❌ 편지 전송 실패: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ 편지 전송 오류: $e');
+      return null;
+    }
+  }
+
+  // 답장 생성 API 호출 함수
+  Future<void> _generateReply(String letterId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('auth_key_id') ?? '';
+    final userId = prefs.getString('user_id') ?? '';
+
+    print('📨 답장 생성 요청 - letterId: $letterId, authKeyId: $authKeyId, userId: $userId');
+
+    if (authKeyId.isEmpty || userId.isEmpty) {
+      print('❗ _generateReply: authKeyId 또는 userId가 비어있습니다.');
+      return;
+    }
+
+    final requestBody = {
+      'letterId': letterId,
+      'authKeyId': authKeyId,
+      'userId': userId,
+    };
+
+    print('📨 답장 생성 요청 데이터: ${jsonEncode(requestBody)}');
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.219.68:8086/letter/reply'),
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      print('📨 답장 생성 응답 상태: ${response.statusCode}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('✅ 답장 생성 요청 성공');
+      } else {
+        print('❌ 답장 생성 요청 실패: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('❌ 답장 생성 오류: $e');
+    }
+  }
+
+  // 주기적으로 답장 상태 확인하는 함수
+  void _startPollingForReply(String letterId) {
+    Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      // 서버에서 최신 편지 정보 가져오기
+      await _loadLettersFromServer();
+
+      // 답장이 도착했는지 확인
+      try {
+        final updatedLetter = _letters.firstWhere(
+              (letter) => letter.id == letterId,
+        );
+
+        if (updatedLetter.deliveryStatus == 'DELIVERED') {
+          timer.cancel(); // 답장 도착 시 폴링 중단
+          print('✅ 답장 도착 확인됨');
+        }
+      } catch (e) {
+        print('편지를 찾을 수 없습니다: $letterId');
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 배경색 설정
       backgroundColor: const Color(0xFFFFFFFF),
-
-      // 앱바 설정
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFFFFF),
-        elevation: 0, // 그림자 제거
-        leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
+        elevation: 0,
+        leading: const BackButton(color: Colors.black),
         title: const Text(
           '하늘에서 온 편지',
           style: TextStyle(
@@ -94,83 +225,85 @@ class _LetterListPageState extends State<LetterListPage> {
           ),
         ),
       ),
-
-      // 메인 콘텐츠 영역
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 편지 총 개수 표시
             Text('총 ${_letters.length}건', style: const TextStyle(fontSize: 14)),
-            const Divider(height: 20), // 구분선
-
-            // 편지 작성 버튼
+            const Divider(height: 20),
             ElevatedButton(
               onPressed: () async {
-                // 편지 작성 페이지로 이동
-                final result = await Navigator.push(
+                final result = await Navigator.push<Letter>(
                   context,
                   MaterialPageRoute(builder: (_) => const LetterWritePage()),
                 );
-                // 편지 작성 완료 후 목록 새로고침
-                if (result == true) _loadLettersFromServer();
+
+                if (result != null) {
+                  // 1. 먼저 회색 카드로 리스트에 추가
+                  setState(() {
+                    _letters.insert(0, result);
+                  });
+
+                  // 2. 서버에 편지 전송 (서버에서 편지 전송과 답장 생성을 한 번에 처리)
+                  final serverLetter = await _sendLetterToServer(result);
+                  if (serverLetter != null) {
+                    setState(() {
+                      _letters[0] = serverLetter;
+                    });
+
+                    print('✅ 편지 전송 완료! 서버에서 답장 생성도 함께 처리됨');
+
+                    // 답장 상태 확인을 위한 폴링 시작
+                    _startPollingForReply(serverLetter.id);
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
+                backgroundColor: const Color(0xFFBB9DF7),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: const Text('편지 작성하기', style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(height: 20),
-
-            // 편지 목록 표시 영역
             Expanded(
               child: ListView.builder(
                 itemCount: _letters.length,
                 itemBuilder: (context, index) {
                   final letter = _letters[index];
-                  final isArrived = letter.isArrived; // 편지 도착 여부 확인
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        // 도착한 편지는 흰색, 도착하지 않은 편지는 회색 배경
-                        color: isArrived ? Colors.white : Colors.grey[300],
+                        color: letter.isArrived ? Colors.white : Colors.grey[300],
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // 편지 정보 표시 (제목, 날짜)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 편지 제목
                               Text(
                                 letter.title,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontFamily: 'Pretendard',
-                                  // 도착 여부에 따라 색상 변경
-                                  color: isArrived ? Colors.black : Colors.black45,
+                                  color: letter.isArrived ? Colors.black : Colors.black45,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              // 편지 날짜
                               Text(
                                 letter.formattedDate,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isArrived ? Colors.grey : Colors.grey[600],
+                                  color: letter.isArrived ? Colors.grey : Colors.grey[600],
                                 ),
                               ),
                             ],
                           ),
-
-                          // 답장 도착 버튼
                           Row(
                             children: [
                               ElevatedButton(
@@ -178,19 +311,19 @@ class _LetterListPageState extends State<LetterListPage> {
                                   backgroundColor: const Color(0xFFBB9DF7),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                                onPressed: () async {
-                                  // 사용자 인증 키 가져오기
+                                onPressed: letter.isArrived
+                                    ? () async {
                                   final prefs = await SharedPreferences.getInstance();
                                   final authKeyId = prefs.getString('auth_key_id') ?? 'default_user_id';
-
-                                  // 편지 상세 페이지로 이동
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => LetterDetailPage(letter: letter, authKeyId: authKeyId),
+                                      builder: (context) =>
+                                          LetterDetailPage(letter: letter, authKeyId: authKeyId),
                                     ),
                                   );
-                                },
+                                }
+                                    : null,
                                 child: const Text('답장 도착', style: TextStyle(color: Colors.white)),
                               ),
                             ],
@@ -203,23 +336,20 @@ class _LetterListPageState extends State<LetterListPage> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // 메인 페이지로 돌아가는 버튼
             Padding(
               padding: const EdgeInsets.only(bottom: 42),
               child: ElevatedButton(
                 onPressed: () {
-                  // 메인 페이지로 이동하면서 이전 페이지 스택 모두 제거
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (_) => const MainPage(fromLetter: true)),
-                        (route) => false, // 모든 이전 라우트 제거
+                        (route) => false,
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFBB9DF7),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size(double.infinity, 48), // 전체 너비 사용
+                  minimumSize: const Size(double.infinity, 48),
                 ),
                 child: const Text(
                   '메인으로 돌아가기',

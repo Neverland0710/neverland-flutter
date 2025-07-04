@@ -5,6 +5,7 @@ import 'letter_list_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 /// 편지 작성 화면을 제공하는 StatefulWidget
 /// 사용자가 고인에게 보낼 편지를 작성하고 저장할 수 있는 폼을 제공
@@ -60,14 +61,6 @@ class _LetterWritePageState extends State<LetterWritePage> {
             crossAxisAlignment: CrossAxisAlignment.start, // 모든 자식 위젯을 왼쪽 정렬
             children: [
               // 편지 수신자 표시 영역
-              const Text(
-                'TO. 엄마', // 편지 수신자 정보 (하드코딩됨)
-                style: TextStyle(
-                  fontSize: 18, // 수신자 표시 폰트 크기
-                  fontWeight: FontWeight.bold, // 볼드체 적용
-                  fontFamily: 'Pretendard', // 커스텀 폰트 적용
-                ),
-              ),
 
               const SizedBox(height: 20), // 수직 여백 20px 추가
 
@@ -176,81 +169,20 @@ class _LetterWritePageState extends State<LetterWritePage> {
                       return; // 함수 실행 중단
                     }
 
-                    // SharedPreferences에서 저장된 인증 정보 가져오기
-                    final prefs = await SharedPreferences.getInstance();
-                    final authKeyId = prefs.getString('auth_key_id'); // 인증 키 ID
-                    final userId = prefs.getString('user_id'); // 사용자 ID
-
-                    // 디버깅용 로그 출력
-                    print('📛 authKeyId: $authKeyId');
-                    print('📛 userId: $userId');
-
-                    // 인증 정보가 없거나 비어있는 경우 에러 처리
-                    if (authKeyId == null || authKeyId.isEmpty || userId == null || userId.isEmpty) {
-                      print('❌ 인증 정보 누락됨');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('로그인 상태가 유효하지 않습니다')),
-                      );
-                      return; // 함수 실행 중단
-                    }
-
                     // 현재 시간 객체 생성 (편지 작성 시간 기록용)
                     final now = DateTime.now();
 
-                    // 서버로 전송할 JSON 데이터 구성
-                    final body = jsonEncode({
-                      'auth_key_id': authKeyId, // 인증 키 ID
-                      'user_id': userId, // 사용자 ID
-                      'title': title, // 편지 제목
-                      'content': content, // 편지 내용
-                      'created_at': now.toIso8601String(), // ISO 8601 형식의 생성 시간
-                    });
+                    // 새로운 편지 객체 생성
+                    final newLetter = Letter(
+                      id: const Uuid().v4(),
+                      title: title,
+                      content: content,
+                      createdAt: now,
+                      replyContent: null, // 초기엔 답장 없음
+                    );
 
-                    try {
-                      // 디버깅용: 전송할 데이터 로그 출력
-                      print('📦 전송할 바디: $body');
-
-                      // HTTP POST 요청으로 편지 데이터를 서버에 전송
-                      final response = await http.post(
-                        Uri.parse('http://192.168.219.68:8086/letter/send'), // 서버 엔드포인트 URL
-                        headers: {'Content-Type': 'application/json'}, // JSON 형식임을 명시
-                        body: body, // 요청 본문에 JSON 데이터 포함
-                      );
-
-                      // HTTP 응답 상태 코드가 성공 범위(200-299)인지 확인
-                      if (response.statusCode >= 200 && response.statusCode < 300) {
-                        // 성공 시 로그 출력
-                        print('✅ 편지 전송 성공');
-                        print('LetterListPage로 이동 중...');
-
-                        // 편지 작성 완료 상태를 SharedPreferences에 저장
-                        final prefs = await SharedPreferences.getInstance();
-                        prefs.setBool('isLetterWritten', true);  // 편지 작성 완료 상태 저장
-
-                        // 위젯이 여전히 마운트되어 있는지 확인 (메모리 안전성)
-                        if (!mounted) return;
-
-                        // 편지 목록 페이지로 이동 (현재 페이지를 스택에서 제거하고 교체)
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LetterListPage()),
-                        );
-
-                      } else {
-                        // 서버 에러 시 로그 출력 및 에러 메시지 표시
-                        print('❌ 서버 오류: ${response.statusCode}');
-                        print(response.body); // 서버 응답 본문 출력
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('서버 오류가 발생했습니다')),
-                        );
-                      }
-                    } catch (e) {
-                      // 네트워크 에러나 기타 예외 발생 시 처리
-                      print('❌ 네트워크 오류: $e');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('네트워크 오류가 발생했습니다')),
-                      );
-                    }
+                    // 편지 목록 페이지로 바로 이동 (새로 작성한 편지 정보 전달)
+                    Navigator.pop(context, newLetter);
                   },
 
                   // 버튼 텍스트 스타일링

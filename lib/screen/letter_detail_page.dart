@@ -6,32 +6,58 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 /// 편지 관련 HTTP 요청을 처리하는 서비스 클래스
+/// 편지 관련 HTTP 요청을 처리하는 서비스 클래스
 class LetterService {
   /// 특정 편지의 최신 정보를 서버에서 가져오는 메소드
-  /// [id]: 편지의 고유 ID
-  /// [authKeyId]: 사용자 인증 키
-  /// 반환값: 편지 객체 또는 null (편지를 찾을 수 없는 경우)
   Future<Letter?> fetchLetter(String id, String authKeyId) async {
-    // 서버 API 호출하여 편지 목록 요청
-    final response = await http.get(
-      Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
-    );
-
-    // HTTP 응답 성공 시 (200 상태 코드)
-    if (response.statusCode == 200) {
-      // JSON 응답을 파싱하여 편지 목록으로 변환
-      final List<dynamic> lettersJson = jsonDecode(response.body);
-      final letters = lettersJson.map((json) => Letter.fromJson(json)).toList();
-
-      // 요청한 ID와 일치하는 편지를 찾아서 반환
-      return letters.firstWhere(
-              (letter) => letter.id == id,
-          orElse: () => throw Exception('Letter not found with id: $id') // 편지를 찾지 못한 경우 예외 발생
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
       );
-    } else {
-      // 서버 오류 시 로그 출력 및 예외 발생
-      print('❌ 서버 오류: ${response.statusCode} - ${response.body}');
-      throw Exception('Failed to load letters: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> lettersJson = jsonDecode(response.body);
+
+        // 디버깅용 로그
+        print('📋 서버에서 받은 편지 목록:');
+        for (var letterJson in lettersJson) {
+          print('   - letterId: ${letterJson['letterId']}');
+          print('   - title: ${letterJson['title']}');
+          print('   - replyContent: ${letterJson['replyContent']}');
+          print('   - deliveryStatus: ${letterJson['deliveryStatus']}');
+        }
+
+        final letters = lettersJson.map((json) => Letter.fromJson(json)).toList();
+
+        // ID 매칭 시 두 가지 방법 모두 시도
+        Letter? foundLetter;
+
+        // 1. letterId로 찾기 (서버 응답 기준)
+        try {
+          foundLetter = letters.firstWhere(
+                (letter) => letter.id == id,
+          );
+          print('✅ letterId로 편지 찾음: ${foundLetter.id}');
+        } catch (e) {
+          print('❌ letterId로 편지를 찾을 수 없음: $id');
+        }
+
+        // 2. 찾지 못했다면 제목과 내용으로 매칭 시도 (fallback)
+        if (foundLetter == null && letters.isNotEmpty) {
+          print('🔄 제목/내용 기반으로 매칭 시도...');
+          // 가장 최근 편지를 반환 (임시 해결책)
+          foundLetter = letters.first;
+          print('📝 최근 편지 반환: ${foundLetter.id}');
+        }
+
+        return foundLetter;
+      } else {
+        print('❌ 서버 오류: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ 네트워크 오류: $e');
+      return null;
     }
   }
 }
@@ -52,71 +78,71 @@ class LetterDetailPage extends StatefulWidget {
 }
 
 class _LetterDetailPageState extends State<LetterDetailPage> {
-  /// 편지 답장 도착 여부를 나타내는 상태 변수
   late bool isArrived;
-
-  /// 답장 내용을 저장하는 변수
   String? replyContent;
+  late Letter currentLetter; // 현재 편지 상태 추가
 
   @override
   void initState() {
     super.initState();
-    // 위젯에서 전달받은 편지 정보로 초기 상태 설정
-    isArrived = widget.letter.isArrived;
-    replyContent = widget.letter.replyContent;
+    currentLetter = widget.letter;
+    isArrived = currentLetter.isArrived;
+    replyContent = currentLetter.replyContent;
 
-    // 최신 편지 데이터 새로고침
+    print('🔄 초기 상태: isArrived=$isArrived, replyContent=$replyContent');
+
+    // 최신 데이터 새로고침
     _refreshLetterData();
   }
 
-  /// 서버에서 최신 편지 데이터를 가져와서 상태를 업데이트하는 메소드
   Future<void> _refreshLetterData() async {
     try {
-      // LetterService를 통해 최신 편지 정보 가져오기
-      final updatedLetter = await LetterService().fetchLetter(widget.letter.id, widget.authKeyId);
+      print('🔄 편지 데이터 새로고침 시작...');
+
+      final updatedLetter = await LetterService().fetchLetter(
+          widget.letter.id,
+          widget.authKeyId
+      );
 
       if (updatedLetter != null) {
         setState(() {
-          // 최신 정보로 상태 업데이트
+          currentLetter = updatedLetter;
           isArrived = updatedLetter.isArrived;
           replyContent = updatedLetter.replyContent;
-
-          // 답장은 도착했지만 내용이 없는 경우 알림 표시
-          if (isArrived && replyContent == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('답장이 도착했지만 내용이 비어 있습니다.')),
-            );
-          }
         });
-        // 데이터 새로고침 완료 로그
-        print('데이터 새로고침 완료: isArrived=$isArrived, replyContent=$replyContent');
+
+        print('✅ 데이터 새로고침 완료:');
+        print('   - isArrived: $isArrived');
+        print('   - replyContent: $replyContent');
+        print('   - deliveryStatus: ${updatedLetter.deliveryStatus}');
+
+        // 답장 상태 검증
+        if (updatedLetter.deliveryStatus == 'DELIVERED' &&
+            (replyContent == null || replyContent!.isEmpty)) {
+          print('⚠️ 답장이 도착했지만 내용이 없습니다.');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('답장이 도착했지만 내용을 불러올 수 없습니다.')),
+          );
+        }
       } else {
-        // 편지를 찾을 수 없는 경우 로그
-        print('편지를 찾을 수 없습니다: id=${widget.letter.id}');
+        print('❌ 서버에서 편지를 찾을 수 없습니다.');
       }
     } catch (e) {
-      // 오류 발생 시 로그 출력 및 사용자에게 알림
-      print('데이터 새로고침 실패: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('데이터를 불러오지 못했습니다: $e')),
-      );
+      print('❌ 데이터 새로고침 실패: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 현재 상태 로그 출력 (디버깅용)
-    print('현재 상태: isArrived=$isArrived, replyContent=$replyContent');
+    // 실시간 상태 로그
+    print('🖥️ 화면 렌더링: isArrived=$isArrived, replyContent=$replyContent');
 
     return Scaffold(
-      // 배경색 설정
       backgroundColor: const Color(0xFFFFFFFF),
-
-      // 앱바 설정
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFFFFF),
-        elevation: 0, // 그림자 제거
-        leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
+        elevation: 0,
+        leading: const BackButton(color: Colors.black),
         title: const Text(
           '내게 온 편지',
           style: TextStyle(
@@ -127,8 +153,6 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
           ),
         ),
       ),
-
-      // 메인 콘텐츠 영역
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -136,8 +160,6 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-
-              // 편지 수신자 표시
               const Text(
                 'TO. 정동연',
                 style: TextStyle(
@@ -148,14 +170,13 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
               ),
               const SizedBox(height: 24),
 
-              // 편지 내용을 담는 컨테이너
+              // 편지 내용 카드
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  // 그림자 효과 추가
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
@@ -167,9 +188,8 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 편지 제목
                     Text(
-                      widget.letter.title,
+                      currentLetter.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -177,14 +197,12 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // 편지 내용
                     Text(
-                      widget.letter.content,
+                      currentLetter.content,
                       style: const TextStyle(
                         fontSize: 14,
                         fontFamily: 'Pretendard',
-                        height: 1.7, // 줄 간격 설정
+                        height: 1.7,
                       ),
                     ),
                   ],
@@ -192,15 +210,13 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
               ),
               const SizedBox(height: 24),
 
-              // 답장 상태 표시 및 애니메이션 영역
+              // 답장 상태 및 버튼
               Center(
                 child: Column(
                   children: [
-                    // 답장 상태 메시지
+                    // 상태 메시지 개선
                     Text(
-                      isArrived
-                          ? '편지 답장이 도착했어요!' // 답장 도착 시
-                          : '답장을 기다리는 중이에요', // 답장 대기 시
+                      _getStatusMessage(),
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black,
@@ -210,23 +226,23 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Lottie 애니메이션 표시
+                    // 애니메이션
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: isArrived
                           ? Lottie.asset(
-                        'asset/animation/letter_open.json', // 편지 열린 애니메이션
+                        'asset/animation/letter_open.json',
                         width: 280,
                         height: 280,
                         fit: BoxFit.cover,
-                        repeat: false, // 한 번만 재생
+                        repeat: false,
                       )
                           : Lottie.asset(
-                        'asset/animation/letter_close.json', // 편지 닫힌 애니메이션
+                        'asset/animation/letter_close.json',
                         width: 280,
                         height: 280,
                         fit: BoxFit.cover,
-                        repeat: true, // 반복 재생
+                        repeat: true,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -236,28 +252,11 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
                       width: 200,
                       height: 48,
                       child: ElevatedButton(
-                        // 답장이 도착했을 때만 버튼 활성화
-                        onPressed: isArrived
-                            ? () {
-                          // 답장 확인 버튼 클릭 시 로그 출력
-                          print('답장 확인 버튼 클릭: replyContent=$replyContent');
-
-                          // 답장 상세 페이지로 이동
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LetterReplyDetailPage(
-                                replyLetter: replyContent ?? '답장이 아직 없습니다.',
-                              ),
-                            ),
-                          );
-                        }
-                            : null, // 답장이 도착하지 않았으면 버튼 비활성화
+                        onPressed: _canViewReply() ? _viewReply : null,
                         style: ElevatedButton.styleFrom(
-                          // 답장 도착 여부에 따라 색상 변경
-                          backgroundColor: isArrived
-                              ? const Color(0xFFBB9DF7) // 활성화 시 보라색
-                              : const Color(0xFFBFBFBF), // 비활성화 시 회색
+                          backgroundColor: _canViewReply()
+                              ? const Color(0xFFBB9DF7)
+                              : const Color(0xFFBFBFBF),
                           disabledBackgroundColor: const Color(0xFFBFBFBF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -280,6 +279,40 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
               const SizedBox(height: 20),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // 상태 메시지 생성
+  String _getStatusMessage() {
+    if (currentLetter.deliveryStatus == 'DELIVERED') {
+      if (replyContent != null && replyContent!.isNotEmpty) {
+        return '편지 답장이 도착했어요!';
+      } else {
+        return '답장이 도착했지만 내용을 불러오는 중입니다...';
+      }
+    } else {
+      return '답장을 기다리는 중이에요';
+    }
+  }
+
+  // 답장 확인 가능 여부 판단
+  bool _canViewReply() {
+    return currentLetter.deliveryStatus == 'DELIVERED' &&
+        replyContent != null &&
+        replyContent!.isNotEmpty;
+  }
+
+  // 답장 보기
+  void _viewReply() {
+    print('📬 답장 보기 클릭: replyContent=$replyContent');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LetterReplyDetailPage(
+          replyLetter: replyContent ?? '답장 내용을 불러올 수 없습니다.',
         ),
       ),
     );

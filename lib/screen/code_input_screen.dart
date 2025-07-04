@@ -33,7 +33,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
 
         print('🔑 인증 응답 데이터: $data');
 
-        final authKeyId = data['auth_key_id'];
+        final authKeyId = data['authKeyId'];
         final userId = data['userId'];
         final deceasedId = data['deceasedId'];
 
