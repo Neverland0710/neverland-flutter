@@ -298,27 +298,55 @@ void _loadPhotos() async {
                       title: '편지 쓰기',
                       subtitle: '마음을 담은 편지를 전해보세요',
                       description: '고인에게 전하고 싶은 마음을 편지로 작성하고, 따뜻한 답장을 받아보세요.',
-                      onTap: () {
-                        // 편지 작성 여부에 따라 이동할 화면 결정
-                        if (isLetterWritten) {
-                          // 편지가 작성된 경우, 편지 목록 페이지로 이동
+                      onTap: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        final authKeyId = prefs.getString('authKeyId') ?? '';
+
+                        if (authKeyId.isEmpty) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const LetterListPage(),  // 편지 목록 페이지로 이동
-                            ),
+                            MaterialPageRoute(builder: (_) => const LetterWritePage()),
                           );
-                        } else {
-                          // 편지가 작성되지 않은 경우, 편지 작성 페이지로 이동
+                          return;
+                        }
+
+                        try {
+                          final response = await http.get(
+                            Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
+                          );
+
+                          if (response.statusCode == 200) {
+                            final List<dynamic> letters = jsonDecode(response.body);
+
+                            if (letters.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LetterListPage()),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LetterWritePage()),
+                              );
+                            }
+                          } else {
+                            print('❌ 서버 오류: ${response.statusCode}');
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LetterWritePage()),
+                            );
+                          }
+                        } catch (e) {
+                          print('❌ 네트워크 오류: $e');
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const LetterWritePage(),  // 편지 작성 페이지로 이동
-                            ),
+                            MaterialPageRoute(builder: (_) => const LetterWritePage()),
                           );
                         }
                       },
                     ),
+
+
 
                     const SizedBox(height: 32),
 

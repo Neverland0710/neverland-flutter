@@ -37,7 +37,7 @@ class _LetterListPageState extends State<LetterListPage> {
 
   Future<void> _loadLettersFromServer() async {
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id') ?? 'default_user_id';
+    final authKeyId = prefs.getString('authKeyId') ?? 'default_user_id';
 
     try {
       final response = await http.get(
