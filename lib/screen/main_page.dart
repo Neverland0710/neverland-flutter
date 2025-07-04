@@ -11,7 +11,7 @@ import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neverland_flutter/screen/photo_album_page.dart';
 import 'package:http/http.dart' as http;
-import 'package:neverland_flutter/screen/voice_call_screen.dart';
+import 'package:neverland_flutter/screen/voice/voice_call_screen.dart';
 
 /// 메인 페이지 StatefulWidget
 /// fromLetter 매개변수로 편지 페이지에서 왔는지 확인 가능
