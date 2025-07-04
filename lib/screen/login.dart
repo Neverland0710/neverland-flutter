@@ -91,14 +91,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         final jwt = responseData['access_token'];
-        final authKeyId = responseData['auth_key_id'];
+        final authKeyId = responseData['authKeyId'];
         final userId = responseData['user_id']; // ✅ 추가
 
         if (authKeyId == null || userId == null) {
           print('❌ authKeyId 또는 userId 응답에 없음!');
         } else {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_key_id', authKeyId); // ✅ 일치시켜야 함
+          await prefs.setString('authKeyId', authKeyId); // ✅ 일치시켜야 함
           await prefs.setString('user_id', responseData['user_id']); // ✅ 일치시켜야 함
           print('✅ SharedPreferences 저장 완료: $authKeyId / ${responseData['user_id']}');
         }

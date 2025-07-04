@@ -102,7 +102,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
 
     // 🔑 SharedPreferences에서 auth_key_id 가져오기
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null || authKeyId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,7 +121,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
     }
 
     // 📋 요청 필드 추가
-    request.fields['auth_key_id'] = authKeyId;
+    request.fields['authKeyId'] = authKeyId;
     request.fields['title'] = _titleController.text;
     request.fields['description'] = _descriptionController.text;
     request.fields['photo_date'] =

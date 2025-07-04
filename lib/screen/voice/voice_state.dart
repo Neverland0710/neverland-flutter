@@ -36,7 +36,7 @@ class VoiceStateHelper {
 
     switch (state) {
       case VoiceState.listening:
-        return 'AI가 답변하고 있습니다\n잠시만 기다려주세요';
+        return '';
       case VoiceState.speaking:
         return '말씀이 끝나시면\n그만말하기를 눌러주세요';
       case VoiceState.processing:

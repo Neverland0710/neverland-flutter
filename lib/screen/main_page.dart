@@ -86,15 +86,15 @@ Future<void> _loadStatistics() async {
 void _loadPhotos() async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null || authKeyId.isEmpty) {
-      print('❌ auth_key_id가 없습니다.');
+      print('❌ authKeyId 없습니다.');
       return;
     }
 
     final response = await http.get(
-      Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=$authKeyId'),
+      Uri.parse('http://192.168.219.68:8086/photo/list?authKeyId=$authKeyId'),
     );
 
     print('📡 사진 응답 상태코드: ${response.statusCode}');
