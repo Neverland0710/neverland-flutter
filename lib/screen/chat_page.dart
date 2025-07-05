@@ -145,15 +145,11 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
     }
   }
 
-
-
-
   // Future<void> saveMessagesToPrefs() async {
   //   final prefs = await SharedPreferences.getInstance();
   //   final encoded = jsonEncode(_messages);
   //   await prefs.setString('chat_messages', encoded);
   // }
-
 
   /// 메시지 전송 함수
   /// 입력된 텍스트를 메시지 리스트에 추가하고 가짜 응답을 트리거

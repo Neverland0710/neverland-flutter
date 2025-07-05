@@ -156,7 +156,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
             // 🎯 상단 고정 헤더 영역 (그라데이션 배경)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 60),
+              padding: const EdgeInsets.symmetric(vertical: 40),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -168,17 +168,33 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                 ),
               ),
               child: Column(
-                children: const [
-                  // 📤 페이지 제목
-                  Text(
-                    '앨범 업로드',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
+                children: [
+                  // 🔙 뒤로가기 버튼
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  // 📝 페이지 부제목
-                  Text(
-                    '소중한 추억을 영원히 보관해요',
-                    style: TextStyle(fontSize: 14, color: Colors.white70),
+                  const SizedBox(height: 16),
+
+                  // 📤 제목과 부제목
+                  const Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          '앨범 업로드',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          '소중한 추억을 영원히 보관해요',
+                          style: TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

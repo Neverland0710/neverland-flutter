@@ -432,7 +432,7 @@ class SpeechBubble extends StatelessWidget {
     return Positioned(
       bottom: 185,
       left: 0,
-      right: 45,
+      right: 10,
       child: Center(
         child: SizedBox(
           width: 360,
@@ -446,7 +446,7 @@ class SpeechBubble extends StatelessWidget {
                 width: 360,
               ),
               Positioned(
-                top: 25,
+                top: 35,
                 child: SizedBox(
                   width: 240,
                   child: Text(
@@ -589,57 +589,58 @@ class SpeakButton extends StatelessWidget {
     return Column(
       children: [
         // 버튼 크기 애니메이션 적용
-        ScaleTransition(
-          scale: Tween<double>(begin: 1.0, end: 0.95).animate(
-            CurvedAnimation(
-              parent: buttonScaleController,
-              curve: Curves.easeInOut,
-            ),
-          ),
-          child: GestureDetector(
-            onTap: onPressed,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    // 상태에 따른 그림자 색상 변경
-                    color: voiceState == VoiceState.speaking
-                        ? Colors.red.withOpacity(0.3)      // 말하는 중: 빨간 그림자
-                        : voiceState == VoiceState.listening
-                        ? Colors.grey.withOpacity(0.3)     // 듣는 중: 회색 그림자
-                        : voiceState == VoiceState.processing
-                        ? Colors.orange.withOpacity(0.3)   // 처리 중: 주황 그림자
-                        : Colors.blue.withOpacity(0.3),    // 기본: 파란 그림자
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
+        Transform.translate(
+          offset: const Offset(20, 0), // 👉 오른쪽으로 30픽셀 이동
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 1.0, end: 0.95).animate(
+              CurvedAnimation(
+                parent: buttonScaleController,
+                curve: Curves.easeInOut,
               ),
-              child: Lottie.asset(
-                'asset/animation/record_pulse.json',  // 녹음 펄스 애니메이션
-                controller: recordController,
-                fit: BoxFit.contain,
-                repeat: false,  // 기본적으로 반복하지 않음
-                onLoaded: (composition) {
-                  // 애니메이션 로드 완료 시 설정
-                  recordController.duration = composition.duration;
-                  // 말하는 중일 때만 애니메이션 반복
-                  if (voiceState == VoiceState.speaking) {
-                    recordController.repeat();
-                  }
-                },
+            ),
+            child: GestureDetector(
+              onTap: onPressed,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: voiceState == VoiceState.speaking
+                          ? Colors.red.withOpacity(0.3)
+                          : voiceState == VoiceState.listening
+                          ? Colors.grey.withOpacity(0.3)
+                          : voiceState == VoiceState.processing
+                          ? Colors.orange.withOpacity(0.3)
+                          : Colors.blue.withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Lottie.asset(
+                  'asset/animation/record_pulse.json',  // 녹음 애니메이션 경로
+                  controller: recordController,
+                  fit: BoxFit.contain,
+                  repeat: false,
+                  onLoaded: (composition) {
+                    recordController.duration = composition.duration;
+                    if (voiceState == VoiceState.speaking) {
+                      recordController.repeat();
+                    }
+                  },
+                ),
               ),
             ),
           ),
         ),
+
         const SizedBox(height: 10),
 
         // 버튼 설명 텍스트 (위치 조정)
         Transform.translate(
-          offset: const Offset(0, -30),  // 텍스트를 위로 30px 이동
+          offset: const Offset(20, -30),  // 텍스트를 위로 30px 이동
           child: Text(
             // 상태에 따른 버튼 텍스트 표시
             VoiceStateHelper.getButtonText(voiceState),
