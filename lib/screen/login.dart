@@ -130,54 +130,51 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 배경색 설정 (연보라색)
       backgroundColor: const Color(0xFFE8E4FF),
-      body: SafeArea( // 상태바 영역 제외한 안전 영역에서 렌더링
-        child: SingleChildScrollView( // 스크롤 가능하도록 변경
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32), // 좌우 여백 32px
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom,
+      body: SafeArea(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Spacer(flex: 2),
+
+              // 네버랜드 로고 이미지
+              Image.asset(
+                'asset/image/neverland_logo.png',
+                width: 360,
+                height: 120,
+                fit: BoxFit.contain,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center, // 가로 중앙 정렬
+
+              const SizedBox(height: 12),
+
+              // 앱 설명 텍스트
+              const Text(
+                '기억을 잇는 따뜻한 공간',
+                style: TextStyle(
+                  fontFamily: 'Pretendard',
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  height: 1.35,
+                  color: Color(0xFFBB9DF7),
+                ),
+              ),
+
+              const Spacer(flex: 3),
+
+              // 로그인 버튼들
+              Column(
                 children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.15), // 화면 높이의 15%
-
-                  // 네버랜드 로고 이미지
-                  Image.asset(
-                    'asset/image/neverland_logo.png',
-                    width: 360,
-                    height: 120,
-                    fit: BoxFit.contain,
-                  ),
-
-                  const SizedBox(height: 12), // 로고와 텍스트 사이 간격
-
-                  // 앱 설명 텍스트
-                  const Text(
-                    '기억을 잇는 따뜻한 공간',
-                    style: TextStyle(
-                      fontFamily: 'Pretendard',   // 프리텐다드 폰트
-                      fontWeight: FontWeight.w900, // 폰트 굵기
-                      fontSize: 20,               // 글자 크기
-                      height: 1.35,              // 줄 높이
-                      color: Color(0xFFBB9DF7),  // 연보라색
-                    ),
-                  ),
-
-                  const Spacer(), // 남은 공간을 모두 차지하여 버튼들을 하단으로 밀어냄
-
                   // 카카오 로그인 버튼
                   SizedBox(
-                    width: double.infinity, // 전체 너비
-                    height: 48,            // 버튼 높이
+                    width: double.infinity,
+                    height: 48,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // 현재는 바로 약관 동의 화면으로 이동 (카카오 로그인 미구현)
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -185,39 +182,37 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      icon: Image.asset('asset/image/kakao_icon.png', height: 24), // 카카오 아이콘
+                      icon: Image.asset('asset/image/kakao_icon.png', height: 24),
                       label: const Text(
                         '카카오 로그인',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 16,
-                          color: Colors.black, // 검은색 텍스트
+                          color: Colors.black,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFE812), // 카카오 옐로우
+                        backgroundColor: const Color(0xFFFFE812),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15), // 둥근 모서리
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                        elevation: 0, // 그림자 제거
+                        elevation: 0,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 12), // 버튼 간 간격
+                  const SizedBox(height: 12),
 
                   // 구글 로그인 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton.icon(
-                      // 로그인 중일 때는 버튼 비활성화, 아닐 때는 구글 로그인 함수 실행
                       onPressed: _isSigningIn
                           ? null
                           : () => handleGoogleLogin(context),
-                      icon: Image.asset('asset/image/google_icon.png', height: 24), // 구글 아이콘
+                      icon: Image.asset('asset/image/google_icon.png', height: 24),
                       label: Text(
-                        // 로그인 상태에 따라 버튼 텍스트 변경
                         _isSigningIn ? '로그인 중...' : '구글로 계속하기',
                         style: const TextStyle(
                           fontFamily: 'Pretendard',
@@ -226,46 +221,46 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,                    // 흰색 배경
-                        side: const BorderSide(color: Colors.black26),   // 연한 회색 테두리
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.black26),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),       // 둥근 모서리
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 12), // 버튼 간 간격
+                  const SizedBox(height: 12),
 
                   // 애플 로그인 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton.icon(
-                      onPressed: () {}, // 현재 미구현 상태
-                      icon: Image.asset('asset/image/apple_icon.png', height: 24), // 애플 아이콘
+                      onPressed: () {},
+                      icon: Image.asset('asset/image/apple_icon.png', height: 24),
                       label: const Text(
                         'Apple로 계속하기',
                         style: TextStyle(
                           fontFamily: 'Pretendard',
                           fontSize: 16,
-                          color: Colors.white, // 흰색 텍스트
+                          color: Colors.white,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, // 검은색 배경
+                        backgroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15), // 둥근 모서리
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                        elevation: 0, // 그림자 제거
+                        elevation: 0,
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 40), // 하단 여백
                 ],
               ),
-            ),
+
+              const Spacer(flex: 1),
+            ],
           ),
         ),
       ),
