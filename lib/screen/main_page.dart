@@ -98,11 +98,11 @@ class _MainPageState extends State<MainPage> {
       );
 
       print('📡 사진 응답 상태코드: ${response.statusCode}');
-      print('📦 응답 바디: ${response.body}');
+      //print('📦 응답 바디: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
-        print('🧾 받은 JSON 개수: ${jsonList.length}');
+        //print('🧾 받은 JSON 개수: ${jsonList.length}');
 
         setState(() {
           _photos = jsonList

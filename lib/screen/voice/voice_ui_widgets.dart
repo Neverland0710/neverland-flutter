@@ -446,7 +446,7 @@ class SpeechBubble extends StatelessWidget {
                 width: 360,
               ),
               Positioned(
-                top: 35,
+                top: voiceState == VoiceState.processing ? 25 : 35,
                 child: SizedBox(
                   width: 240,
                   child: Text(

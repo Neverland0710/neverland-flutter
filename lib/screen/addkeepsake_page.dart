@@ -177,7 +177,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
             ),
             SizedBox(height: 10),
             // 제목 텍스트
-            Text('기록 업로드',
+            Text('유품 업로드',
                 style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             SizedBox(height: 8),
             // 부제목 텍스트

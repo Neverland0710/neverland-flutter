@@ -28,7 +28,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   prefs.getKeys().forEach((key) {
     final value = prefs.get(key); // 모든 타입 대응
-    print('🔍 Key: $key → $value');
+
   });
 
   // Firebase 초기화
