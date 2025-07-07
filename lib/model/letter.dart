@@ -8,6 +8,10 @@ class Letter {
   final String? replyContent;
   final String? deliveryStatus; // 추가: 배송 상태
 
+  final String? authKeyId;
+  final String? userId;
+  final String? deceasedId;
+
   Letter({
     required this.id,
     required this.title,
@@ -15,10 +19,14 @@ class Letter {
     required this.createdAt,
     this.replyContent,
     this.deliveryStatus,
+    this.authKeyId,
+    this.userId,
+    this.deceasedId,
   });
 
   // 서버 응답 구조에 맞게 JSON 파싱 수정
   factory Letter.fromJson(Map<String, dynamic> json) {
+    final authKey = json['authKey'] ?? {};
     return Letter(
       id: json['letterId'] ?? json['id'], // 서버에서는 letterId 사용
       title: json['title'] ?? '',
@@ -28,6 +36,9 @@ class Letter {
           : DateTime.now(),
       replyContent: json['replyContent'], // 서버에서 직접 제공
       deliveryStatus: json['deliveryStatus'],
+      authKeyId: authKey['authKeyId'],
+      userId: authKey['userId'],
+      deceasedId: authKey['deceasedId'],
     );
   }
 

@@ -30,7 +30,7 @@ class _LetterListPageState extends State<LetterListPage> {
     // 초기화: 사용자 ID와 편지 목록 로드
     _loadUserId();
     _loadLettersFromServer();
-
+    _startAutoRefresh();
     // 1초마다 UI 갱신을 위한 타이머 설정
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -38,7 +38,16 @@ class _LetterListPageState extends State<LetterListPage> {
       }
     });
   }
-
+  /// 일정 간격으로 편지 목록을 자동 갱신하는 함수
+  void _startAutoRefresh() {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      _loadLettersFromServer(); // 🔄 편지 목록 서버 갱신
+    });
+  }
   @override
   void dispose() {
     // 모든 타이머를 명시적으로 취소하여 메모리 누수 방지
@@ -302,19 +311,15 @@ class _LetterListPageState extends State<LetterListPage> {
             );
 
             // 작성된 편지가 반환된 경우
+            // 작성된 편지가 반환된 경우
             if (result != null && mounted) {
-              setState(() {
-                _letters.insert(0, result); // 편지 목록에 추가
-              });
-
               // 서버로 편지 전송
               final serverLetter = await _sendLetterToServer(result);
               if (serverLetter != null && mounted) {
                 setState(() {
-                  _letters[0] = serverLetter; // 서버 응답으로 편지 갱신
+                  _letters.insert(0, serverLetter); // 서버 응답으로만 목록에 반영
                 });
 
-                // 디버깅용: 전송 완료 로그
                 print('✅ 편지 전송 완료! 서버에서 답장 생성도 함께 처리됨');
                 _startPollingForReply(serverLetter.id); // 답장 폴링 시작
               }
@@ -333,7 +338,10 @@ class _LetterListPageState extends State<LetterListPage> {
             itemCount: _letters.length, // 편지 개수
             itemBuilder: (context, index) {
               final letter = _letters[index]; // 현재 편지
-
+              final createdAt = letter.createdAt;
+              final elapsed = DateTime.now().difference(createdAt);
+              final bool isElapsed = elapsed.inSeconds >= 30;  // 답장 딜레이
+              final bool isButtonEnabled = letter.isArrived && isElapsed;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12.0), // 각 항목 하단 여백
                 child: Container(
@@ -372,23 +380,20 @@ class _LetterListPageState extends State<LetterListPage> {
                         children: [
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFBB9DF7), // 버튼 색상: 보라색
+                              backgroundColor: isButtonEnabled ? const Color(0xFFBB9DF7) : Colors.grey,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            onPressed: letter.isArrived
+                            onPressed: isButtonEnabled
                                 ? () async {
-                              // 인증 키 로드
                               final prefs = await SharedPreferences.getInstance();
                               final authKeyId = prefs.getString('authKeyId') ?? 'default_user_id';
 
-                              // 사용자 ID 확인
                               if (_userId == null || _userId!.isEmpty) {
                                 print('❗ userId 없음');
                                 return;
                               }
 
                               if (mounted) {
-                                // LetterDetailPage로 이동
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -401,9 +406,14 @@ class _LetterListPageState extends State<LetterListPage> {
                                 );
                               }
                             }
-                                : null, // 답장이 없으면 버튼 비활성화
-                            child: const Text('답장 도착', style: TextStyle(color: Colors.white)),
+                                : null,
+                            child: Text(
+                              letter.isArrived ? '답장 도착' : '전송 중',
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
+
+
                         ],
                       ),
                     ],
