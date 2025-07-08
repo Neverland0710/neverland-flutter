@@ -67,8 +67,10 @@ class _MainPageState extends State<MainPage> {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        print('📦 통계 응답 본문: ${response.body}'); // ✅ 요기 추가
 
+        final data = jsonDecode(response.body);
+        if (!mounted) return; // ✅ 추가
         setState(() {
           _photoCount = data['photoCount'] ?? 0;
           _replyLetterCount = data['sentLetterCount'] ?? 0;
@@ -103,7 +105,7 @@ class _MainPageState extends State<MainPage> {
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
         //print('🧾 받은 JSON 개수: ${jsonList.length}');
-
+        if (!mounted) return;
         setState(() {
           _photos = jsonList
               .map((e) {
@@ -241,7 +243,7 @@ class _MainPageState extends State<MainPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _StatBox(count: '$_photoCount', label: '저장된 사진'),
-                  _StatBox(count: '$_replyLetterCount', label: '답장온 편지'),
+                  _StatBox(count: '$_replyLetterCount', label: '보낸 편지'),
                   _StatBox(count: '$_keepsakeCount', label: '유품 기록'),
                 ],
               ),
@@ -387,6 +389,8 @@ class _MainPageState extends State<MainPage> {
                             MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
                           );
                           if (result == true) {
+                            print('📌 앨범에서 돌아옴 → 통계/사진 갱신');
+                            if (!mounted) return;
                             _loadPhotos();
                             _loadStatistics();
                           }
@@ -538,8 +542,8 @@ class _MainPageState extends State<MainPage> {
                         );
 
                         if (result == true) {
-                          _loadKeepsakes();
-                          setState(() {});
+                          print('📌 유품에서 돌아옴 → 통계 갱신');
+                          _loadKeepsakes(); // ✅ 여기서 _loadStatistics 포함됨
                         }
                       },
                     ),

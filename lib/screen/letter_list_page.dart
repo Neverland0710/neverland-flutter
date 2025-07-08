@@ -393,6 +393,7 @@ class _LetterListPageState extends State<LetterListPage> {
                                 return;
                               }
 
+
                               if (mounted) {
                                 Navigator.push(
                                   context,

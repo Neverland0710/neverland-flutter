@@ -26,7 +26,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
   // 📊 상태 변수들
   /// 사용자가 선택한 이미지 파일들 리스트
   final List<XFile> _selectedImages = [];
-
+  bool isUploading = false;
   /// 이미지 선택을 위한 ImagePicker 인스턴스
   final picker = ImagePicker();
 
@@ -112,18 +112,17 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
       return;
     }
 
+    setState(() {
+      isUploading = true;
+    });
+
     try {
       for (final image in _selectedImages) {
         final request = http.MultipartRequest(
           "POST",
           Uri.parse("http://52.78.139.47:8086/photo/upload"),
         );
-        print("✅ 보낼 데이터:");
-        print("authKeyId: $authKeyId");
-        print("title: ${_titleController.text}");
-        print("description: ${_descriptionController.text}");
-        print("photoDate: ${_selectedDate?.toIso8601String().split('T')[0]}");
-        print("file path: ${image.path}");
+
         request.fields["authKeyId"] = authKeyId;
         request.fields["title"] = _titleController.text;
         request.fields["description"] = _descriptionController.text;
@@ -133,7 +132,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
           await http.MultipartFile.fromPath(
             "file",
             image.path,
-            contentType: MediaType("image", "jpeg"), // 이거 꼭 필요함
+            contentType: MediaType("image", "jpeg"),
           ),
         );
 
@@ -142,9 +141,6 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
 
         if (response.statusCode == 200) {
           print("✅ 업로드 성공: ${body.body}");
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("✅ 업로드 성공")),
-          );
         } else {
           print("❌ 업로드 실패: ${response.statusCode}");
           ScaffoldMessenger.of(context).showSnackBar(
@@ -153,11 +149,20 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
         }
       }
 
-      Navigator.pop(context, true); // 업로드 끝나면 화면 종료
+      if (mounted) {
+        Navigator.pop(context, true); // 성공 시 화면 닫기
+      }
     } catch (e) {
+      print("❌ 서버 오류: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("❌ 서버 오류: $e")),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploading = false;
+        });
+      }
     }
   }
 
@@ -465,16 +470,38 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
         // 📤 업로드 버튼
         Center(
           child: ElevatedButton(
-            onPressed: _uploadToServer, // 탭 시 서버 업로드 함수 호출
+            onPressed: isUploading ? null : _uploadToServer,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
-              minimumSize: const Size(300, 48), // 최소 크기 설정
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // 둥근 모서리
+              backgroundColor: const Color(0xFFBB9DF7),
+              minimumSize: const Size(300, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
-            child: const Text('업로드하기',
-                style: TextStyle(fontSize: 16, color: Colors.white)),
+            child: isUploading
+                ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  '업로드 중...',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ],
+            )
+                : const Text(
+              '업로드하기',
+              style: TextStyle(fontSize: 16, color: Colors.white),
+            ),
           ),
         ),
+
       ],
     );
   }

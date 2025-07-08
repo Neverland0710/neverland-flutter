@@ -1,8 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// 📚 LIBRARY IMPORTS
-// ═══════════════════════════════════════════════════════════════════════════════════════
 
-// 📱 Flutter의 핵심 위젯과 Material Design 컴포넌트들을 사용하기 위한 import
 import 'package:flutter/material.dart';
 
 // 📷 사진 업로드 기능을 담당하는 별도 페이지
@@ -21,24 +17,9 @@ import 'package:neverland_flutter/screen/main_page.dart';
 // 🌐 HTTP 통신(REST API 호출)을 위한 라이브러리
 import 'package:http/http.dart' as http;
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// 📸 PHOTO ALBUM PAGE CLASS
-// ═══════════════════════════════════════════════════════════════════════════════════════
 
-/// 📸 사진 앨범 메인 페이지 클래스
-///
-/// 기능:
-/// - 사용자가 업로드한 사진들을 리스트/그리드 형태로 표시
-/// - 사진 정렬 (최신순, 오래된순, 이름순)
-/// - 사진 상세보기 다이얼로그
-/// - 사진 삭제 기능
-/// - 사진 업로드 페이지로 이동
-///
-/// 화면 구성:
-/// - 상단: 그라데이션 헤더 (제목, 뒤로가기 버튼)
-/// - 중간: 검색바, 뷰 모드 전환 버튼, 정렬 옵션
-/// - 하단: 사진 목록 (리스트뷰 또는 그리드뷰)
-/// - 플로팅 버튼: 사진 추가
+// 📸 PHOTO ALBUM PAGE CLASS
+
 class PhotoAlbumPage extends StatefulWidget {
   const PhotoAlbumPage({super.key});
 
@@ -46,52 +27,28 @@ class PhotoAlbumPage extends StatefulWidget {
   State<PhotoAlbumPage> createState() => _PhotoAlbumPageState();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// 📊 STATE CLASS
-// ═══════════════════════════════════════════════════════════════════════════════════════
+
 
 class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
 
-  // ───────────────────────────────────────────────────────────────────────────────────
-  // 📊 STATE VARIABLES (상태 변수들)
-  // ───────────────────────────────────────────────────────────────────────────────────
 
-  /// 🗂️ 서버에서 불러온 사진 데이터를 저장하는 리스트
-  /// 각 사진은 Map<String, dynamic> 형태로 저장됨
-  ///
-  /// 사진 데이터 구조:
-  /// - 'id': 사진 고유 ID
-  /// - 'title': 사진 제목
-  /// - 'description': 사진 설명
-  /// - 'date': 사진 날짜
-  /// - 'imagePath': 서버에 저장된 이미지 경로 (삭제 시 사용)
-  /// - 'imageUrl': 이미지 표시용 URL
+  // 📊 STATE VARIABLES (상태 변수들)
+
   List<Map<String, dynamic>> photos = [];
 
   /// 🔄 현재 화면 표시 모드를 나타내는 정수
-  /// 0: 리스트뷰 모드 (한 줄에 하나씩, 큰 이미지)
-  /// 1: 그리드뷰 모드 (한 줄에 두 개씩, 작은 이미지)
+
   int _viewMode = 0;
 
-  /// 📋 현재 선택된 정렬 기준
-  /// 가능한 값: '최신순', '오래된순', '이름순'
-  /// 이 값에 따라 photos 리스트가 정렬됨
+
   String _sortOption = '최신순';
 
-  /// 🔍 검색어 입력을 관리하는 텍스트 컨트롤러
-  /// 현재는 UI만 구현되어 있고 실제 검색 기능은 미구현 상태
+
   final TextEditingController _searchController = TextEditingController();
 
-  // ───────────────────────────────────────────────────────────────────────────────────
-  // 📋 SORTING METHODS (정렬 관련 메서드)
-  // ───────────────────────────────────────────────────────────────────────────────────
 
-  /// 📋 선택된 정렬 옵션에 따라 사진 리스트를 정렬하는 함수
-  ///
-  /// 정렬 기준:
-  /// - '최신순': 날짜 기준 내림차순 (최신 사진이 위로)
-  /// - '오래된순': 날짜 기준 오름차순 (오래된 사진이 위로)
-  /// - '이름순': 제목 기준 가나다순 (ㄱ, ㄴ, ㄷ... 순서)
+  // 📋 SORTING METHODS (정렬 관련 메서드)
+
   void _sortPhotos() {
     if (_sortOption == '최신순') {
       // compareTo 메서드를 사용하여 날짜 문자열을 비교
@@ -106,16 +63,9 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────────────
-  // 🗑️ DELETE METHODS (삭제 관련 메서드)
-  // ───────────────────────────────────────────────────────────────────────────────────
 
-  /// ❗ 사진 삭제 확인 다이얼로그를 표시하는 함수
-  ///
-  /// 사용자가 실수로 사진을 삭제하는 것을 방지하기 위해
-  /// 삭제 전에 확인 다이얼로그를 표시함
-  ///
-  /// @param photo 삭제할 사진 데이터
+  // 🗑️ DELETE METHODS (삭제 관련 메서드)
+
   void _confirmDeletePhoto(Map<String, dynamic> photo) {
     showDialog(
       context: context,
@@ -147,14 +97,6 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
   }
 
   /// 🗑️ 서버에서 사진을 삭제하는 비동기 함수
-  ///
-  /// 삭제 과정:
-  /// 1. 로컬 저장소에서 사용자 인증 키 가져오기
-  /// 2. 서버에 DELETE 요청 보내기
-  /// 3. 성공하면 화면에서 해당 사진 제거
-  /// 4. 실패하면 오류 로그 출력
-  ///
-  /// @param photo 삭제할 사진 데이터
   void _deletePhoto(Map<String, dynamic> photo) async {
     try {
       // 🔗 서버에 저장된 이미지 경로 가져오기
@@ -205,20 +147,9 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────────────
-  // 🔍 DETAIL VIEW METHODS (상세보기 관련 메서드)
-  // ───────────────────────────────────────────────────────────────────────────────────
 
-  /// 🔍 사진 상세보기 다이얼로그를 표시하는 함수
-  ///
-  /// 기능:
-  /// - 큰 크기의 사진 이미지 표시
-  /// - 사진 제목, 날짜, 설명 표시
-  /// - 스크롤 가능한 내용 영역
-  /// - 닫기 버튼 제공
-  ///
-  /// @param context 현재 BuildContext
-  /// @param photo 상세보기할 사진 데이터
+  // 🔍 DETAIL VIEW METHODS (상세보기 관련 메서드)
+
   void _showPhotoDetail(BuildContext context, Map<String, dynamic> photo) {
     showDialog(
       context: context,
@@ -252,7 +183,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
                           borderRadius: BorderRadius.circular(16),
                           image: DecorationImage(
                             image: NetworkImage(photo['imageUrl'] ?? ''),
-                            fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 크롭
+                            fit: BoxFit.contain, // 이미지를 컨테이너에 맞게 크롭
                           ),
                         ),
                       ),
@@ -285,14 +216,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────────────
-  // 🚀 LIFECYCLE METHODS (생명주기 관련 메서드)
-  // ───────────────────────────────────────────────────────────────────────────────────
 
-  /// 🚀 위젯이 처음 생성될 때 호출되는 초기화 함수
-  ///
-  /// 이 함수에서는 페이지 로드 시 필요한 초기 데이터를 불러옴
-  /// State 클래스의 모든 변수들이 초기화된 후에 호출됨
   @override
   void initState() {
     super.initState();
@@ -555,16 +479,12 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
           ),
           const SizedBox(height: 12),
 
-          // ═══════════════════════════════════════════════════════════════════════════════
-          // 📊 사진 개수 표시 영역
-          // ═══════════════════════════════════════════════════════════════════════════════
+
           Text('총 ${photos.length}장의 사진',
               style: const TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 8),
 
-          // ═══════════════════════════════════════════════════════════════════════════════
-          // 📸 사진 목록 표시 영역 (화면의 나머지 공간을 모두 사용)
-          // ═══════════════════════════════════════════════════════════════════════════════
+
           Expanded(
             child: photos.isEmpty
                 ? // 📭 사진이 없을 때 표시되는 안내 메시지
@@ -598,9 +518,6 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
         ],
       ),
 
-      // ═══════════════════════════════════════════════════════════════════════════════
-      // ➕ 사진 추가 플로팅 액션 버튼 (화면 우하단 고정)
-      // ═══════════════════════════════════════════════════════════════════════════════
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
         onPressed: _navigateToUploadPage,          // 사진 업로드 페이지로 이동
@@ -608,9 +525,6 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
       ),
     );
   }
-
-
-
 
   /// 📊 그리드 뷰용 사진 카드 위젯 생성 함수
 
@@ -639,7 +553,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 image: DecorationImage(
                   image: NetworkImage(photo['imageUrl'] ?? ''),
-                  fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 크롭
+                  fit: BoxFit.contain, // 이미지를 컨테이너에 맞게 크롭
                 ),
               ),
             ),
@@ -701,7 +615,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 image: DecorationImage(
                   image: NetworkImage(photo['imageUrl'] ?? ''),
-                  fit: BoxFit.cover, // 이미지를 컨테이너에 맞게 크롭
+                  fit: BoxFit.contain, // 이미지를 컨테이너에 맞게 크롭
                 ),
               ),
             ),
