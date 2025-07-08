@@ -9,6 +9,7 @@ import 'package:dotted_border/dotted_border.dart';
 // 🌐 HTTP 통신용 import
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 /// 📤 사진 업로드 페이지
 /// 사용자가 사진을 선택하고 제목, 설명, 날짜 등을 입력해서 서버에 업로드하는 페이지
@@ -110,7 +111,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/photo/upload');
+    final uri = Uri.parse('http://52.78.139.47:8086/photo/upload');
     final request = http.MultipartRequest('POST', uri);
 
     // 📎 이미지 파일 추가 (멀티 업로드)
@@ -131,16 +132,28 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
       final response = await request.send();
 
       if (response.statusCode == 200) {
+        final respStr = await response.stream.bytesToString();
+        final Map<String, dynamic> responseBody = jsonDecode(respStr);
+
+        final uploadedImageUrl = responseBody["imageUrl"]; // ✅ S3 URL 파싱
+
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("✅ 업로드 성공")));
+          const SnackBar(content: Text("✅ 업로드 성공")),
+        );
+
+        print("✅ 업로드된 S3 이미지 URL: $uploadedImageUrl"); // 👉 디버깅용 출력
+
+        // TODO: 이 URL로 Image.network(uploadedImageUrl) 하면 됨
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("❌ 업로드 실패: ${response.statusCode}")));
+          SnackBar(content: Text("❌ 업로드 실패: ${response.statusCode}")),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ 서버 오류: $e")));
+        SnackBar(content: Text("❌ 서버 오류: $e")),
+      );
     }
   }
 

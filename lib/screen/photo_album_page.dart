@@ -96,7 +96,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
         return;
       }
 
-      final uri = Uri.parse('http://192.168.219.68:8086/photo/delete')
+      final uri = Uri.parse('http://52.78.139.47:8086/photo/delete')
           .replace(queryParameters: {
         'authKeyId': authKeyId,
         'imageUrl': imagePath,
@@ -208,7 +208,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
       }
 
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/photo/list?authKeyId=$authKeyId'),
+        Uri.parse('http://52.78.139.47:8086/photo/list?authKeyId=$authKeyId'),
       );
 
       if (response.statusCode == 200) {
@@ -229,7 +229,7 @@ class _PhotoAlbumPageState extends State<PhotoAlbumPage> {
               'imagePath': e['imagePath'], // 삭제용
               'imageUrl': e['imagePath'].toString().startsWith('http')
                   ? e['imagePath']
-                  : 'http://192.168.219.68:8086${e['imagePath']}', // ✅ 여기가 중요
+                  : 'http://52.78.139.47:8086${e['imagePath']}', // ✅ 여기가 중요
             };
 
           })

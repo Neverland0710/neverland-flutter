@@ -99,7 +99,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/chat/history?authKeyId=$authKeyId'),
+        Uri.parse('http://52.78.139.47:8086/chat/history?authKeyId=$authKeyId'),
       );
 
       if (response.statusCode == 200) {
@@ -189,7 +189,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
   }
 
   Future<void> _sendReplyToServer(String userMessage) async {
-    final url = Uri.parse("http://192.168.219.68:8086/chat/ask");
+    final url = Uri.parse("http://52.78.139.47:8086/chat/ask");
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -255,7 +255,7 @@ class _RealTimeChatPageState extends State<RealTimeChatPage> with WidgetsBinding
         return;
       }
 
-      final url = Uri.parse("http://192.168.219.68:8086/chat/relation?userId=$userId");
+      final url = Uri.parse("http://52.78.139.47:8086/chat/relation?userId=$userId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {

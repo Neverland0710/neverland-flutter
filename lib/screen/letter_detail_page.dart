@@ -14,7 +14,7 @@ class LetterService {
     try {
       // 서버에서 편지 목록을 가져오는 HTTP GET 요청
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
+        Uri.parse('http://52.78.139.47:8086/letter/list?authKeyId=$authKeyId'),
       );
 
       // HTTP 응답 상태 코드가 200(성공)인 경우
@@ -122,7 +122,7 @@ class _LetterDetailPageState extends State<LetterDetailPage> {
     try {
       // 서버에서 수신자 이름 가져오기
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/chat/relation?userId=${widget.userId}'),
+        Uri.parse('http://52.78.139.47:8086/chat/relation?userId=${widget.userId}'),
       );
 
       // HTTP 응답 상태 코드가 200(성공)인 경우

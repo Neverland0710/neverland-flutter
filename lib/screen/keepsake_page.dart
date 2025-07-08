@@ -72,7 +72,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/delete')
+    final uri = Uri.parse('http://52.78.139.47:8086/keepsake/delete')
         .replace(queryParameters: {
       'authKeyId': authKeyId,
       'imageUrl': imageUrl,
@@ -153,7 +153,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/list?authKeyId=$authKeyId');
+    final uri = Uri.parse('http://52.78.139.47:8086/keepsake/list?authKeyId=$authKeyId');
     final response = await http.get(uri);
 
     print('📡 요청 상태: ${response.statusCode}');
@@ -165,7 +165,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       keepsakes = data.map((item) {
         final imagePath = item['imagePath'];
         final fullUrl = imagePath != null
-            ? 'http://192.168.219.68:8086$imagePath'
+            ? 'http://52.78.139.47:8086$imagePath'
             : null;
 
         return KeepsakeItem(

@@ -63,7 +63,7 @@ class _MainPageState extends State<MainPage> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/statistics/get?userId=$userId'),
+        Uri.parse('http://52.78.139.47:8086/statistics/get?userId=$userId'),
       );
 
       if (response.statusCode == 200) {
@@ -94,7 +94,7 @@ class _MainPageState extends State<MainPage> {
       }
 
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/photo/list?authKeyId=$authKeyId'),
+        Uri.parse('http://52.78.139.47:8086/photo/list?authKeyId=$authKeyId'),
       );
 
       print('📡 사진 응답 상태코드: ${response.statusCode}');
@@ -114,7 +114,7 @@ class _MainPageState extends State<MainPage> {
 
             final completeUrl = rawUrl.toString().startsWith('http')
                 ? rawUrl
-                : 'http://192.168.219.68:8086$rawUrl';
+                : 'http://52.78.139.47:8086$rawUrl';
 
             return {
               'id': e['id'],
@@ -327,7 +327,7 @@ class _MainPageState extends State<MainPage> {
 
                         try {
                           final response = await http.get(
-                            Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
+                            Uri.parse('http://52.78.139.47:8086/letter/list?authKeyId=$authKeyId'),
                           );
 
                           if (response.statusCode == 200) {

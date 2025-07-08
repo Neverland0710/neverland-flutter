@@ -267,7 +267,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
       return null;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/upload');
+    final uri = Uri.parse('http://52.78.139.47:8086/keepsake/upload');
     final request = http.MultipartRequest('POST', uri);
 
     // ✅ 텍스트 데이터 설정
