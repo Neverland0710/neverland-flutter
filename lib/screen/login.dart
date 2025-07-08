@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final userId = responseData['user_id']; // ✅ 추가
 
         if (authKeyId == null || userId == null) {
-          print('❌ authKeyId 또는 userId 응답에 없음!');
+          //print('❌ authKeyId 또는 userId 응답에 없음!');
         } else {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('authKeyId', authKeyId); // ✅ 일치시켜야 함
