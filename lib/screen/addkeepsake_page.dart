@@ -166,23 +166,47 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
         child: Column(
           children: [
             // 뒤로가기 버튼 행
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(
+                    Icons.arrow_back, // 👈 둘 다 같은 아이콘
+                    color: Colors.white,
+                    size: 24,
+                  ),
                 ),
-                Expanded(child: Container()),  // 오른쪽 공간 확보
-              ],
+              ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 25),
             // 제목 텍스트
-            Text('유품 업로드',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            Transform.translate(
+              offset: Offset(0, -10), // 👈 Y축 -10 = 위로 10픽셀
+              child: Text(
+                '유품 업로드',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
             SizedBox(height: 8),
             // 부제목 텍스트
-            Text('소중한 추억을 영원히 보관해요',
-                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16)),
+            Transform.translate(
+              offset: Offset(0, -10), // 👈 Y축으로 10픽셀 위로 올림
+              child: Text(
+                '소중한 추억을 영원히 보관해요',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+
             SizedBox(height: 30),
           ],
         ),

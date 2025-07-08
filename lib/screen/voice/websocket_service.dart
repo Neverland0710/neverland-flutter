@@ -33,7 +33,7 @@ class WebSocketService {
   Function()? onReconnected; // ✅ 연결 재성공 이벤트
 
   // 환경 변수에서 백엔드 WebSocket URL 가져오기 (기본값: 로컬호스트)
-  String get _backendUrl => dotenv.env['BACKEND_URL'] ?? 'ws://localhost:8080/ws/audio';
+  String get _backendUrl => dotenv.env['BACKEND_URL'] ?? 'ws://52.78.139.47:8086/ws/audio';
   // WebSocket 연결 상태 확인
   bool get isConnected => _channel != null;
 
@@ -62,7 +62,17 @@ class WebSocketService {
       final wsUrl = _backendUrl; // WebSocket URL
 
       // WebSocket 연결 설정
-      _channel = IOWebSocketChannel.connect(Uri.parse(wsUrl));
+      try {
+        final socket = await WebSocket.connect(wsUrl)
+            .timeout(const Duration(seconds: 5));
+        print("✅ WebSocket 연결 성공");
+        _channel = IOWebSocketChannel(socket);
+      } catch (e) {
+        print("❌ WebSocket 연결 실패: $e");
+        onError?.call('WebSocket 연결 실패: $e');
+        _scheduleReconnect();
+        return;
+      }
       // 인증 메시지 전송
       _channel!.sink.add(jsonEncode({
         'type': 'auth',

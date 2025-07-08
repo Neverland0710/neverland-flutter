@@ -3,6 +3,7 @@ import 'package:neverland_flutter/screen/addkeepsake_page.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:neverland_flutter/screen/main_page.dart';
 
 /// 유품 목록을 표시하고 관리하는 메인 화면
 class KeepsakeScreen extends StatefulWidget {
@@ -230,12 +231,12 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        // 보라색 그라데이션 배경
+      padding: const EdgeInsets.only(top: 20, left: 12, right: 24, bottom: 0), // ← left 줄임
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF8B7ED8), Color(0xFFA994E6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF8B7ED8), Color(0xFFA994E6)], // 보라색 그라데이션
         ),
       ),
       child: Padding(
@@ -243,28 +244,56 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
         child: Column(
           children: [
             // 상단 네비게이션 바 (뒤로가기 버튼)
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () => Navigator.pop(context, true),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 0, bottom: 0), // ← 왼쪽 여백 따로 줄임
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainPage()),
+                    );
+                  },
+                  child: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
-                Expanded(child: Container()),
-              ],
+              ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
+
             // 메인 타이틀
-            Text('유품 기록', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: const Text(
+                '유품 기록',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
             // 서브 타이틀
-            Text('소중한 물건들의 이야기를 간직해요', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16)),
-            SizedBox(height: 30),
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: Text(
+                '소중한 물건들의 이야기를 간직해요',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
-
   /// 검색 입력창과 정렬 필터 버튼들을 구성하는 위젯
   Widget _buildSearchAndFilter() {
     return Padding(

@@ -39,6 +39,7 @@ dependencies:
   # iOS 스타일 아이콘
   cupertino_icons: ^1.0.8
 
+
   # Google 로그인용
   google_sign_in: ^6.1.5
 
