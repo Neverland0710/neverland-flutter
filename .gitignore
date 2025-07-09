@@ -49,3 +49,18 @@ app.*.map.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 !important.json
+
+# API Keys and secrets
+.env
+*.env
+.env.local
+.env.production
+
+# iOS
+ios/Flutter/Generated.xcconfig
+ios/Runner/GeneratedPluginRegistrant.*
+
+# Android
+android/app/src/main/java/io/flutter/plugins/
+android/local.properties
+android/key.properties

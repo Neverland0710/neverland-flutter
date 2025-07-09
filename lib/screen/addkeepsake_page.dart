@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:neverland_flutter/screen/keepsake_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http_parser/http_parser.dart';
 
 /// 유품을 추가하는 화면
 /// 사진 업로드, 유품 정보 입력, 특별한 이야기 입력 기능을 제공
@@ -25,7 +26,7 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
   // 이미지 관련 변수들
   List<File> _selectedImages = [];  // 선택된 이미지 파일들을 저장하는 리스트
   final ImagePicker _picker = ImagePicker();  // 이미지 선택을 위한 picker 인스턴스
-
+  bool isUploading = false;
   /// 위젯이 소멸될 때 메모리 누수 방지를 위해 컨트롤러들을 해제
   @override
   void dispose() {
@@ -61,18 +62,22 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
   /// 유품 업로드를 처리하는 메인 함수
   /// 1. 필수 입력 검증 → 2. 이미지 업로드 → 3. 유품 정보 업로드 → 4. 업로드 완료 시 이전 화면으로 복귀
   void _submitKeepsake() async {
-    // ✅ 1. 필수 항목(제목, 설명) 입력 여부 확인
+    if (isUploading) return; // 중복 방지
+
+    setState(() {
+      isUploading = true;
+    });
     if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('필수 항목을 입력해주세요'),  // 에러 메시지
+          content: Text('필수 항목을 입력해주세요'),
           backgroundColor: Colors.red[400],
         ),
       );
-      return; // 필수 항목 미입력 시 종료
+      return;
     }
 
-    // ✅ [추가] 추정 가치 유효성 검사
+    // 숫자 형식 확인
     final valueText = _valueController.text.trim();
     if (valueText.isNotEmpty && !RegExp(r'^\d+$').hasMatch(valueText)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,34 +89,72 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
       return;
     }
 
+    final prefs = await SharedPreferences.getInstance();
+    final authKeyId = prefs.getString('authKeyId');
 
-    // ✅ 2. 업로드된 이미지 URL들을 저장할 리스트 생성
-    List<String> uploadedImageUrls = [];
+    if (authKeyId == null || authKeyId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ 인증 정보가 없습니다.")),
+      );
+      return;
+    }
 
-    // ✅ 3. 선택된 이미지들을 반복하며 서버에 업로드
-    for (var image in _selectedImages) {
-      final url = await _uploadImageToServer(image); // 서버 업로드 시도
-      if (url != null) {
-        uploadedImageUrls.add(url); // 성공 시 URL 저장
+    if (_selectedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ 유품 사진을 선택해주세요.")),
+      );
+      return;
+    }
+
+    try {
+      final request = http.MultipartRequest(
+        "POST",
+        Uri.parse("http://52.78.139.47:8086/keepsake/upload"),
+      );
+
+      request.fields["authKeyId"] = authKeyId;
+      request.fields["item_name"] = _titleController.text;
+      request.fields["description"] = _descriptionController.text;
+      request.fields["acquisition_period"] = _periodController.text;
+      request.fields["special_story"] = _storyController.text;
+      request.fields["estimated_value"] = valueText.isNotEmpty ? valueText : '0';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          "file",
+          _selectedImages[0].path,
+          contentType: MediaType("image", "jpeg"),
+        ),
+      );
+
+      final response = await request.send();
+      final responseBody = await http.Response.fromStream(response);
+
+      if (response.statusCode == 200) {
+        print("✅ 업로드 성공: ${responseBody.body}");
+        if (mounted) {
+          Navigator.pop(context, true); // 성공 시 이전 화면으로
+        }
       } else {
-        // 실패 시 에러 표시하고 함수 종료
+        print("❌ 업로드 실패: ${response.statusCode}");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('이미지 업로드 실패'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text("❌ 업로드 실패: ${response.statusCode}")),
         );
-        return;
+      }
+    } catch (e) {
+      print("❌ 오류 발생: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ 오류 발생: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploading = false; // 업로드 완료 또는 실패 시 다시 false
+        });
       }
     }
 
-    // ✅ 5. 모든 업로드가 성공하면 이전 화면으로 돌아가기
-    if (mounted) {
-      Navigator.pop(context, true); // 업로드 완료 후 결과 true 전달하며 pop
-      print('✅ 유품 업로드 완료');
-    }
   }
-
 
   /// 메인 화면 구성
   @override
@@ -166,23 +209,47 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
         child: Column(
           children: [
             // 뒤로가기 버튼 행
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 8.0),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(
+                    Icons.arrow_back, // 👈 둘 다 같은 아이콘
+                    color: Colors.white,
+                    size: 24,
+                  ),
                 ),
-                Expanded(child: Container()),  // 오른쪽 공간 확보
-              ],
+              ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 25),
             // 제목 텍스트
-            Text('기록 업로드',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            Transform.translate(
+              offset: Offset(0, -10), // 👈 Y축 -10 = 위로 10픽셀
+              child: Text(
+                '유품 업로드',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
             SizedBox(height: 8),
             // 부제목 텍스트
-            Text('소중한 추억을 영원히 보관해요',
-                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16)),
+            Transform.translate(
+              offset: Offset(0, -10), // 👈 Y축으로 10픽셀 위로 올림
+              child: Text(
+                '소중한 추억을 영원히 보관해요',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+
             SizedBox(height: 30),
           ],
         ),
@@ -260,18 +327,18 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
   Future<String?> _uploadImageToServer(File imageFile) async {
     // ✅ SharedPreferences에서 authKeyId 가져오기
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final authKeyId = prefs.getString('authKeyId');
 
     if (authKeyId == null || authKeyId.isEmpty) {
       print('❌ auth_key_id 가 없습니다.');
       return null;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/upload');
+    final uri = Uri.parse('http://52.78.139.47:8086/keepsake/upload');
     final request = http.MultipartRequest('POST', uri);
 
     // ✅ 텍스트 데이터 설정
-    request.fields['auth_key_id'] = authKeyId;
+    request.fields['authKeyId'] = authKeyId;
     request.fields['item_name'] = _titleController.text;
     request.fields['description'] = _descriptionController.text;
     request.fields['acquisition_period'] = _periodController.text;
@@ -567,21 +634,43 @@ class _AddKeepsakeScreenState extends State<AddKeepsakeScreen> {
 
   /// 업로드 버튼 생성
   Widget _buildSubmitButton() {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
-        onPressed: _submitKeepsake,  // 업로드 함수 호출
+        onPressed: isUploading ? null : _submitKeepsake, // ✅ 업로드 중이면 비활성화
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF8B7ED8),  // 보라색 배경
+          backgroundColor: Color(0xFF8B7ED8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 0,  // 그림자 제거
+          elevation: 0,
         ),
-        child: Text('업로드하기',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        child: isUploading
+            ? Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.5,
+              ),
+            ),
+            SizedBox(width: 10),
+            Text(
+              '업로드 중...',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        )
+            : Text(
+          '업로드하기',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
+
 
   /// 섹션 제목 생성 (왼쪽에 보라색 바와 함께)
   /// @param title 섹션 제목 텍스트

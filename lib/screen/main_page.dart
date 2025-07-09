@@ -11,7 +11,7 @@ import 'dart:convert';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neverland_flutter/screen/photo_album_page.dart';
 import 'package:http/http.dart' as http;
-import 'package:neverland_flutter/screen/voice_call_screen.dart';
+import 'package:neverland_flutter/screen/voice/voice_call_screen.dart';
 
 /// 메인 페이지 StatefulWidget
 /// fromLetter 매개변수로 편지 페이지에서 왔는지 확인 가능
@@ -25,119 +25,121 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
 // 편지 작성 여부 변수 추가
-late bool isLetterWritten;
+  late bool isLetterWritten;
 
-@override
-void initState() {
-  super.initState();
-  _checkLetterStatus();  // 편지 작성 여부 확인
-  _loadStatistics();      // 통계 로드
-  _loadPhotos();          // 사진 썸네일 로드
-}
+  @override
+  void initState() {
+    super.initState();
+    _checkLetterStatus();  // 편지 작성 여부 확인
+    _loadStatistics();      // 통계 로드
+    _loadPhotos();          // 사진 썸네일 로드
+  }
 
-List<Map<String, dynamic>> _photos = []; // 사진 목록
+  List<Map<String, dynamic>> _photos = []; // 사진 목록
 
 // 통계 카운트들
-int _photoCount = 0; // 저장된 사진 개수
-int _replyLetterCount = 0; // 답장온 편지 개수
-int _keepsakeCount = 0; // 유품 기록 개수
+  int _photoCount = 0; // 저장된 사진 개수
+  int _replyLetterCount = 0; // 답장온 편지 개수
+  int _keepsakeCount = 0; // 유품 기록 개수
 
 // 편지 작성 여부를 확인하는 함수
-Future<void> _checkLetterStatus() async {
-  final prefs = await SharedPreferences.getInstance();
-  final letterStatus = prefs.getBool('isLetterWritten') ?? false;  // 기본값은 false
-
-  setState(() {
-    isLetterWritten = letterStatus;
-  });
-}
-
-Future<void> _loadStatistics() async {
-  final prefs = await SharedPreferences.getInstance();
-  final userId = prefs.getString('user_id');
-
-  if (userId == null || userId.isEmpty) {
-    print('❌ userId가 없습니다.');
-    return;
-  }
-
-  try {
-    final response = await http.get(
-      Uri.parse('http://192.168.219.68:8086/statistics/get?userId=$userId'),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      setState(() {
-        _photoCount = data['photoCount'] ?? 0;
-        _replyLetterCount = data['sentLetterCount'] ?? 0;
-        _keepsakeCount = data['keepsakeCount'] ?? 0;
-      });
-    } else {
-      print('❌ 통계 불러오기 실패: ${response.statusCode}');
-    }
-  } catch (e) {
-    print('❌ 통계 요청 중 오류 발생: $e');
-  }
-}
-
-/// 서버에서 사진 썸네일 목록을 불러오는 함수
-void _loadPhotos() async {
-  try {
+  Future<void> _checkLetterStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final authKeyId = prefs.getString('auth_key_id');
+    final letterStatus = prefs.getBool('isLetterWritten') ?? false;  // 기본값은 false
 
-    if (authKeyId == null || authKeyId.isEmpty) {
-      print('❌ auth_key_id가 없습니다.');
+    setState(() {
+      isLetterWritten = letterStatus;
+    });
+  }
+
+  Future<void> _loadStatistics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId == null || userId.isEmpty) {
+      print('❌ userId가 없습니다.');
       return;
     }
 
-    final response = await http.get(
-      Uri.parse('http://192.168.219.68:8086/photo/list?auth_key_id=$authKeyId'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('http://52.78.139.47:8086/statistics/get?userId=$userId'),
+      );
 
-    print('📡 사진 응답 상태코드: ${response.statusCode}');
-    print('📦 응답 바디: ${response.body}');
+      if (response.statusCode == 200) {
+        print('📦 통계 응답 본문: ${response.body}'); // ✅ 요기 추가
 
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      print('🧾 받은 JSON 개수: ${jsonList.length}');
-
-      setState(() {
-        _photos = jsonList
-            .map((e) {
-          final rawUrl = e['imagePath'];
-          if (rawUrl == null || rawUrl.toString().contains('FILE_SAVE_FAILED')) {
-            return null;
-          }
-
-          final completeUrl = rawUrl.toString().startsWith('http')
-              ? rawUrl
-              : 'http://192.168.219.68:8086$rawUrl';
-
-          return {
-            'id': e['id'],
-            'title': e['title'],
-            'description': e['description'],
-            'date': e['date'],
-            'imageUrl': completeUrl,
-          };
-        })
-            .where((e) => e != null)
-            .cast<Map<String, dynamic>>()
-            .toList();
-      });
-    } else {
-      print('❌ 메인에서 사진 로드 실패: ${response.statusCode}');
+        final data = jsonDecode(response.body);
+        if (!mounted) return; // ✅ 추가
+        setState(() {
+          _photoCount = data['photoCount'] ?? 0;
+          _replyLetterCount = data['sentLetterCount'] ?? 0;
+          _keepsakeCount = data['keepsakeCount'] ?? 0;
+        });
+      } else {
+        print('❌ 통계 불러오기 실패: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ 통계 요청 중 오류 발생: $e');
     }
-  } catch (e) {
-    print('❌ 메인에서 사진 로드 에러: $e');
   }
-}
+
+  /// 서버에서 사진 썸네일 목록을 불러오는 함수
+  void _loadPhotos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authKeyId = prefs.getString('authKeyId');
+
+      if (authKeyId == null || authKeyId.isEmpty) {
+        print('❌ authKeyId 없습니다.');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('http://52.78.139.47:8086/photo/list?authKeyId=$authKeyId'),
+      );
+
+      print('📡 사진 응답 상태코드: ${response.statusCode}');
+      //print('📦 응답 바디: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = jsonDecode(response.body);
+        //print('🧾 받은 JSON 개수: ${jsonList.length}');
+        if (!mounted) return;
+        setState(() {
+          _photos = jsonList
+              .map((e) {
+            final rawUrl = e['imagePath'];
+            if (rawUrl == null || rawUrl.toString().contains('FILE_SAVE_FAILED')) {
+              return null;
+            }
+
+            final completeUrl = rawUrl.toString().startsWith('http')
+                ? rawUrl
+                : 'http://52.78.139.47:8086$rawUrl';
+
+            return {
+              'id': e['id'],
+              'title': e['title'],
+              'description': e['description'],
+              'date': e['date'],
+              'imageUrl': completeUrl,
+            };
+          })
+              .where((e) => e != null)
+              .cast<Map<String, dynamic>>()
+              .toList();
+        });
+      } else {
+        print('❌ 메인에서 사진 로드 실패: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ 메인에서 사진 로드 에러: $e');
+    }
+  }
 
 
-/// 로그아웃 확인 다이얼로그 표시
+  /// 로그아웃 확인 다이얼로그 표시
   void _confirmLogout() {
     showDialog(
       context: context,
@@ -241,7 +243,7 @@ void _loadPhotos() async {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _StatBox(count: '$_photoCount', label: '저장된 사진'),
-                  _StatBox(count: '$_replyLetterCount', label: '답장온 편지'),
+                  _StatBox(count: '$_replyLetterCount', label: '보낸 편지'),
                   _StatBox(count: '$_keepsakeCount', label: '유품 기록'),
                 ],
               ),
@@ -259,7 +261,11 @@ void _loadPhotos() async {
                     // 실시간 대화 카드
                     _buildCardMenu(
                       context,
-                      imagePath: 'asset/image/chat_icon.png',
+                      imageWidget: SvgPicture.asset(
+                        'asset/image/chat_icon.svg',
+                        width: 36,
+                        height: 36,
+                      ),
                       title: '실시간 대화',
                       subtitle: '언제든 대화해보세요',
                       description:
@@ -274,10 +280,15 @@ void _loadPhotos() async {
                       },
                     ),
 
+
                     // 실시간 통화 카드
                     _buildCardMenu(
                       context,
-                      imagePath: 'asset/image/call_icon.png', // 👉 아이콘 경로
+                      imageWidget: SvgPicture.asset(
+                        'asset/image/call_icon.svg',
+                        width: 40,
+                        height: 40,
+                      ),
                       title: '실시간 통화',
                       subtitle: '목소리로 마음을 전해보세요',
                       description: '그리운 순간마다, 감정이 담긴 대화로 마음을 나눠보세요.',
@@ -291,34 +302,68 @@ void _loadPhotos() async {
                       },
                     ),
 
-                    // 편지 쓰기 카드
+
+                    // 편지 쓰기 카드 ✅ 수정된 부분
                     _buildCardMenu(
                       context,
-                      imagePath: 'asset/image/letter_icon.png',
+                      imageWidget: SvgPicture.asset(
+                        'asset/image/letter_icon.svg',
+                        width: 36,
+                        height: 36,
+                      ),
                       title: '편지 쓰기',
                       subtitle: '마음을 담은 편지를 전해보세요',
                       description: '고인에게 전하고 싶은 마음을 편지로 작성하고, 따뜻한 답장을 받아보세요.',
-                      onTap: () {
-                        // 편지 작성 여부에 따라 이동할 화면 결정
-                        if (isLetterWritten) {
-                          // 편지가 작성된 경우, 편지 목록 페이지로 이동
+                      onTap: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        final authKeyId = prefs.getString('authKeyId') ?? '';
+                        final userId = prefs.getString('user_id') ?? ''; // ✅ 추가
+
+                        if (authKeyId.isEmpty) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const LetterListPage(),  // 편지 목록 페이지로 이동
-                            ),
+                            MaterialPageRoute(builder: (_) => LetterWritePage(userId: userId)), // ✅ 수정
                           );
-                        } else {
-                          // 편지가 작성되지 않은 경우, 편지 작성 페이지로 이동
+                          return;
+                        }
+
+                        try {
+                          final response = await http.get(
+                            Uri.parse('http://52.78.139.47:8086/letter/list?authKeyId=$authKeyId'),
+                          );
+
+                          if (response.statusCode == 200) {
+                            final List<dynamic> letters = jsonDecode(response.body);
+
+                            if (letters.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const LetterListPage()),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => LetterWritePage(userId: userId)), // ✅ 수정
+                              );
+                            }
+                          } else {
+                            print('❌ 서버 오류: ${response.statusCode}');
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => LetterWritePage(userId: userId)), // ✅ 수정
+                            );
+                          }
+                        } catch (e) {
+                          print('❌ 네트워크 오류: $e');
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const LetterWritePage(),  // 편지 작성 페이지로 이동
-                            ),
+                            MaterialPageRoute(builder: (_) => LetterWritePage(userId: userId)), // ✅ 수정
                           );
                         }
                       },
                     ),
+
+
 
                     const SizedBox(height: 32),
 
@@ -344,6 +389,8 @@ void _loadPhotos() async {
                             MaterialPageRoute(builder: (context) => const PhotoAlbumPage()),
                           );
                           if (result == true) {
+                            print('📌 앨범에서 돌아옴 → 통계/사진 갱신');
+                            if (!mounted) return;
                             _loadPhotos();
                             _loadStatistics();
                           }
@@ -370,11 +417,11 @@ void _loadPhotos() async {
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Image.asset(
-                                    'asset/image/image.png',
+                                  SvgPicture.asset(
+                                    'asset/image/image.svg', // ✅ SVG 경로
                                     width: 36,
                                     height: 36,
-                                    color: const Color(0xFFBB9DF7),
+                                    color: Color(0xFFBB9DF7), // ✅ SVG에도 색 적용됨
                                   ),
                                   const SizedBox(width: 20),
                                   Expanded(
@@ -478,7 +525,11 @@ void _loadPhotos() async {
                     // 유품 기록 카드
                     _buildCardMenu(
                       context,
-                      imagePath: 'asset/image/box.png',
+                      imageWidget: SvgPicture.asset(
+                        'asset/image/box.svg',
+                        width: 36,
+                        height: 36,
+                      ),
                       title: '유품 기록',
                       subtitle: '의미있는 물건들',
                       description: '시계, 반지, 책 등 특별한 유품들의 이야기를 기록합니다.',
@@ -491,12 +542,11 @@ void _loadPhotos() async {
                         );
 
                         if (result == true) {
-                          _loadKeepsakes(); // 유품 목록 새로고침
-                          setState(() {});  // UI 갱신
+                          print('📌 유품에서 돌아옴 → 통계 갱신');
+                          _loadKeepsakes(); // ✅ 여기서 _loadStatistics 포함됨
                         }
                       },
                     ),
-
 
                     const SizedBox(height: 24),
 
@@ -535,7 +585,7 @@ void _loadPhotos() async {
   /// @param onTap - 카드 클릭 시 실행할 함수
   Widget _buildCardMenu(
       BuildContext context, {
-        required String imagePath,
+        required Widget imageWidget,
         required String title,
         required String subtitle,
         required String description,
@@ -563,19 +613,16 @@ void _loadPhotos() async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 상단 영역: 아이콘 + 제목 + 부제목 + 화살표
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 메뉴 아이콘
-                  Image.asset(
-                    imagePath,
-                    width: 36,
-                    height: 36,
-                    color: const Color(0xFFBB9DF7),
+                  // ✅ SVG나 이미지 위젯을 직접 넣기
+                  SizedBox(
+                    width: 42,
+                    height: 42,
+                    child: imageWidget,
                   ),
                   const SizedBox(width: 20),
-                  // 제목과 부제목
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,7 +648,6 @@ void _loadPhotos() async {
                       ],
                     ),
                   ),
-                  // 화살표 아이콘
                   const Icon(
                     Icons.arrow_forward_ios,
                     size: 16,
@@ -610,7 +656,6 @@ void _loadPhotos() async {
                 ],
               ),
               const SizedBox(height: 12),
-              // 상세 설명
               Text(
                 description,
                 style: const TextStyle(
