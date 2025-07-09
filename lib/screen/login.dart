@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // 백엔드 서버에 소셜 로그인 요청
       final response = await http.post(
-        Uri.parse("http://192.168.219.68:8086/auth/social-login"), // 백엔드 API 엔드포인트
+        Uri.parse("http://52.78.139.47:8086/auth/social-login"), // 백엔드 API 엔드포인트
         headers: {
           'Authorization': 'Bearer $idToken', // Firebase ID Token을 Bearer 토큰으로 전달
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final userId = responseData['user_id']; // ✅ 추가
 
         if (authKeyId == null || userId == null) {
-          print('❌ authKeyId 또는 userId 응답에 없음!');
+          //print('❌ authKeyId 또는 userId 응답에 없음!');
         } else {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('authKeyId', authKeyId); // ✅ 일치시켜야 함

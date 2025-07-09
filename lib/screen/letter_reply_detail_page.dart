@@ -36,7 +36,7 @@ class _LetterReplyDetailPageState extends State<LetterReplyDetailPage> {
     try {
       // 서버에서 수신자 이름 가져오기
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/chat/relation?userId=${widget.userId}'),
+        Uri.parse('http://52.78.139.47:8086/chat/relation?userId=${widget.userId}'),
       );
 
       // HTTP 응답 상태 코드가 200(성공)인 경우
@@ -66,7 +66,7 @@ class _LetterReplyDetailPageState extends State<LetterReplyDetailPage> {
         elevation: 0, // 앱바 그림자 제거
         leading: const BackButton(color: Colors.black), // 뒤로가기 버튼
         title: const Text(
-          '하늘에서 온 편지', // 앱바 제목
+          '편지 쓰기', // 앱바 제목
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,

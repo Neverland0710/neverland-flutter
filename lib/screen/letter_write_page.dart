@@ -35,7 +35,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
   Future<void> _loadRecipientName() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/chat/relation?userId=${widget.userId}'),
+        Uri.parse('http://52.78.139.47:8086/chat/relation?userId=${widget.userId}'),
       );
 
       if (response.statusCode == 200) {
@@ -198,7 +198,7 @@ class _LetterWritePageState extends State<LetterWritePage> {
 
                     // 전송 작업을 백그라운드에서 실행
                     unawaited(http.post(
-                      Uri.parse('http://192.168.219.68:8086/letter/send'),
+                      Uri.parse('http://52.78.139.47:8086/letter/send'),
                       headers: {"Content-Type": "application/json"},
                       body: jsonEncode(requestBody),
                     ));

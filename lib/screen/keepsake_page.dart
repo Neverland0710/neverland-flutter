@@ -3,6 +3,8 @@ import 'package:neverland_flutter/screen/addkeepsake_page.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:neverland_flutter/screen/main_page.dart';
+import 'package:http_parser/http_parser.dart';
 
 /// 유품 목록을 표시하고 관리하는 메인 화면
 class KeepsakeScreen extends StatefulWidget {
@@ -25,7 +27,9 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
 
   // ❗ 사진 삭제 확인 다이얼로그를 표시하는 함수
   // [photo] 삭제할 사진 데이터
-  void _confirmDeleteKeepsake(String filename) {
+  void _confirmDeleteKeepsake(String? imageUrl) {
+    if (imageUrl == null) return;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -39,9 +43,9 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();         // 다이얼로그 닫기
-                _deleteKeepsake(filename);           // ✅ 여기서만 삭제 실행
-                print('🔥 삭제 요청 파일명: $filename');
+                Navigator.of(context).pop();
+                _deleteKeepsake(imageUrl); // ✅ 전체 S3 URL 전달
+                print('🔥 삭제 요청 URL: $imageUrl');
               },
               child: const Text('삭제', style: TextStyle(color: Colors.red)),
             ),
@@ -50,6 +54,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       },
     );
   }
+
 
 
   @override
@@ -72,26 +77,28 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/delete')
-        .replace(queryParameters: {
-      'authKeyId': authKeyId,
+    final uri = Uri.parse('http://52.78.139.47:8086/keepsake/delete').replace(queryParameters: {
+      'authKeyId': authKeyId,      // ✅ 이거 추가해야 백엔드에서 안 터짐
       'imageUrl': imageUrl,
     });
+
+    print('🔥 최종 삭제 요청 URI: $uri');
 
     try {
       final response = await http.delete(uri);
 
       if (response.statusCode == 200) {
         print('✅ 유품 삭제 성공');
-        fetchKeepsakes(); // 삭제 후 목록 새로고침
+        fetchKeepsakes(); // 목록 새로고침
       } else {
         print('❌ 유품 삭제 실패: ${response.statusCode}');
-        print(response.body);
+        print('서버 응답: ${response.body}');
       }
     } catch (e) {
       print('❌ 삭제 요청 중 예외 발생: $e');
     }
   }
+
 
   @override
   void dispose() {
@@ -153,7 +160,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/keepsake/list?authKeyId=$authKeyId');
+    final uri = Uri.parse('http://52.78.139.47:8086/keepsake/list?authKeyId=$authKeyId');
     final response = await http.get(uri);
 
     print('📡 요청 상태: ${response.statusCode}');
@@ -164,13 +171,12 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
 
       keepsakes = data.map((item) {
         final imagePath = item['imagePath'];
-        final fullUrl = imagePath != null
-            ? 'http://192.168.219.68:8086$imagePath'
-            : null;
+        final fullUrl = imagePath?.toString();
+
 
         return KeepsakeItem(
           id: '${item['keepsakeId']}',
-          title: '${item['itemName'] ?? ''}',
+          title: item['itemName'] ?? '',
           year: '${item['acquisitionPeriod'] ?? ''}',
           description: '${item['description'] ?? ''}',
           story: '${item['specialStory'] ?? ''}',
@@ -230,12 +236,12 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        // 보라색 그라데이션 배경
+      padding: const EdgeInsets.only(top: 20, left: 12, right: 24, bottom: 0), // ← left 줄임
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF8B7ED8), Color(0xFFA994E6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF8B7ED8), Color(0xFFA994E6)], // 보라색 그라데이션
         ),
       ),
       child: Padding(
@@ -243,28 +249,56 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
         child: Column(
           children: [
             // 상단 네비게이션 바 (뒤로가기 버튼)
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () => Navigator.pop(context, true),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 0, bottom: 0), // ← 왼쪽 여백 따로 줄임
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainPage()),
+                    );
+                  },
+                  child: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
-                Expanded(child: Container()),
-              ],
+              ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
+
             // 메인 타이틀
-            Text('유품 기록', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: const Text(
+                '유품 기록',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
             // 서브 타이틀
-            Text('소중한 물건들의 이야기를 간직해요', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16)),
-            SizedBox(height: 30),
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: Text(
+                '소중한 물건들의 이야기를 간직해요',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
-
   /// 검색 입력창과 정렬 필터 버튼들을 구성하는 위젯
   Widget _buildSearchAndFilter() {
     return Padding(
@@ -417,7 +451,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
                         item.imageUrl!,  // ✅ 주소 중복 없이 바로 사용
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                       )
                   )
                       : Icon(Icons.inventory_2_outlined, color: Color(0xFF8B7ED8), size: 30),
@@ -475,7 +509,7 @@ class _KeepsakeScreenState extends State<KeepsakeScreen> {
                 onPressed: () {
                   final rawUrl = item.imageUrl ?? '';
                   final filename = Uri.encodeComponent(rawUrl.split('/').last);
-                  _confirmDeleteKeepsake(filename); // ✅ 다이얼로그 먼저 띄움
+                  _confirmDeleteKeepsake(rawUrl); // ✅ 다이얼로그 먼저 띄움
                   print('🔥 삭제 요청 파일명: $filename');
 
                 },

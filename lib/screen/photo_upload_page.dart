@@ -9,6 +9,9 @@ import 'package:dotted_border/dotted_border.dart';
 // 🌐 HTTP 통신용 import
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http_parser/http_parser.dart'; // MediaType
+import 'package:uuid/uuid.dart';
 
 /// 📤 사진 업로드 페이지
 /// 사용자가 사진을 선택하고 제목, 설명, 날짜 등을 입력해서 서버에 업로드하는 페이지
@@ -23,7 +26,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
   // 📊 상태 변수들
   /// 사용자가 선택한 이미지 파일들 리스트
   final List<XFile> _selectedImages = [];
-
+  bool isUploading = false;
   /// 이미지 선택을 위한 ImagePicker 인스턴스
   final picker = ImagePicker();
 
@@ -92,7 +95,7 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
     }
   }
 
-  /// 📤 서버에 사진을 업로드하는 함수
+  /// 📤 서버에 사진을 업로드하는 함수 (S3 직접 업로드 방식 + 메타데이터 저장)
   void _uploadToServer() async {
     if (_selectedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,7 +103,6 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
       return;
     }
 
-    // 🔑 SharedPreferences에서 auth_key_id 가져오기
     final prefs = await SharedPreferences.getInstance();
     final authKeyId = prefs.getString('authKeyId');
 
@@ -110,39 +112,60 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
       return;
     }
 
-    final uri = Uri.parse('http://192.168.219.68:8086/photo/upload');
-    final request = http.MultipartRequest('POST', uri);
-
-    // 📎 이미지 파일 추가 (멀티 업로드)
-    for (var i = 0; i < _selectedImages.length; i++) {
-      final imageFile =
-      await http.MultipartFile.fromPath('file', _selectedImages[i].path);
-      request.files.add(imageFile);
-    }
-
-    // 📋 요청 필드 추가
-    request.fields['authKeyId'] = authKeyId;
-    request.fields['title'] = _titleController.text;
-    request.fields['description'] = _descriptionController.text;
-    request.fields['photo_date'] =
-    _selectedDate!.toIso8601String().split('T')[0];
+    setState(() {
+      isUploading = true;
+    });
 
     try {
-      final response = await request.send();
+      for (final image in _selectedImages) {
+        final request = http.MultipartRequest(
+          "POST",
+          Uri.parse("http://52.78.139.47:8086/photo/upload"),
+        );
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("✅ 업로드 성공")));
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("❌ 업로드 실패: ${response.statusCode}")));
+        request.fields["authKeyId"] = authKeyId;
+        request.fields["title"] = _titleController.text;
+        request.fields["description"] = _descriptionController.text;
+        request.fields["photo_date"] = _selectedDate!.toIso8601String().split("T")[0];
+
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            "file",
+            image.path,
+            contentType: MediaType("image", "jpeg"),
+          ),
+        );
+
+        final response = await request.send();
+        final body = await http.Response.fromStream(response);
+
+        if (response.statusCode == 200) {
+          print("✅ 업로드 성공: ${body.body}");
+        } else {
+          print("❌ 업로드 실패: ${response.statusCode}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("❌ 업로드 실패: ${response.statusCode}")),
+          );
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true); // 성공 시 화면 닫기
       }
     } catch (e) {
+      print("❌ 서버 오류: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ 서버 오류: $e")));
+        SnackBar(content: Text("❌ 서버 오류: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploading = false;
+        });
+      }
     }
   }
+
 
 
   /// 🎨 메인 UI 빌드 함수
@@ -171,27 +194,44 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
                 crossAxisAlignment: CrossAxisAlignment.start, // 왼쪽 정렬
                 children: [
                   // 🔙 뒤로가기 버튼
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                  Transform.translate(
+                    offset: Offset(0, -10), // 👈 위로 10픽셀 이동
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                      ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
 
                   // 📤 제목과 부제목
-                  const Center(
+                  Center(
                     child: Column(
                       children: [
-                        Text(
-                          '앨범 업로드',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                        Transform.translate(
+                          offset: Offset(0, -15), // '앨범 업로드' 텍스트 위로 이동
+                          child: Text(
+                            '앨범 업로드',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                         SizedBox(height: 12),
-                        Text(
-                          '소중한 추억을 영원히 보관해요',
-                          style: TextStyle(fontSize: 14, color: Colors.white70),
+                        Transform.translate(
+                          offset: Offset(0, -15), // 이 부분도 동일하게 위로 이동
+                          child: Text(
+                            '소중한 추억을 영원히 보관해요',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -430,16 +470,38 @@ class _PhotoUploadPageState extends State<PhotoUploadPage> {
         // 📤 업로드 버튼
         Center(
           child: ElevatedButton(
-            onPressed: _uploadToServer, // 탭 시 서버 업로드 함수 호출
+            onPressed: isUploading ? null : _uploadToServer,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFBB9DF7), // 보라색 배경
-              minimumSize: const Size(300, 48), // 최소 크기 설정
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // 둥근 모서리
+              backgroundColor: const Color(0xFFBB9DF7),
+              minimumSize: const Size(300, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
-            child: const Text('업로드하기',
-                style: TextStyle(fontSize: 16, color: Colors.white)),
+            child: isUploading
+                ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  '업로드 중...',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ],
+            )
+                : const Text(
+              '업로드하기',
+              style: TextStyle(fontSize: 16, color: Colors.white),
+            ),
           ),
         ),
+
       ],
     );
   }

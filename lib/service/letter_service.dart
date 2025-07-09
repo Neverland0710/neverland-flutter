@@ -6,7 +6,7 @@ import '../model/letter.dart';
 /// 공통으로 사용되는 API 호출 로직을 모아둔 유틸리티 클래스
 class LetterService {
   // 서버 베이스 URL (실제 환경에 맞게 수정)
-  static const String baseUrl = 'http://192.168.219.68:8086';
+  static const String baseUrl = 'http://52.78.139.47:8086';
 
   /// 수신자 이름을 서버에서 불러오는 함수
   ///

@@ -74,7 +74,7 @@ class _LetterListPageState extends State<LetterListPage> {
     try {
       // 서버에서 편지 목록 가져오기
       final response = await http.get(
-        Uri.parse('http://192.168.219.68:8086/letter/list?authKeyId=$authKeyId'),
+        Uri.parse('http://52.78.139.47:8086/letter/list?authKeyId=$authKeyId'),
       );
 
       // HTTP 응답 상태 코드가 200~299인 경우 (성공)
@@ -126,7 +126,7 @@ class _LetterListPageState extends State<LetterListPage> {
     try {
       // 서버로 편지 전송 (POST 요청)
       final response = await http.post(
-        Uri.parse('http://192.168.219.68:8086/letter/send'),
+        Uri.parse('http://52.78.139.47:8086/letter/send'),
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
           'Accept': 'application/json',
@@ -211,7 +211,7 @@ class _LetterListPageState extends State<LetterListPage> {
     try {
       // 서버로 답장 생성 요청 (POST 요청)
       final response = await http.post(
-        Uri.parse('http://192.168.219.68:8086/letter/reply'),
+        Uri.parse('http://52.78.139.47:8086/letter/reply'),
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
           'Accept': 'application/json',
@@ -392,6 +392,7 @@ class _LetterListPageState extends State<LetterListPage> {
                                 print('❗ userId 없음');
                                 return;
                               }
+
 
                               if (mounted) {
                                 Navigator.push(

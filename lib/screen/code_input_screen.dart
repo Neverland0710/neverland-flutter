@@ -25,7 +25,7 @@ class _CodeInputScreenState extends State<CodeInputScreen> {
     final enteredCode = _codeController.text.trim();
 
     try {
-      final uri = Uri.parse('http://192.168.219.68:8086/auth/lookup?auth_code=$enteredCode');
+      final uri = Uri.parse('http://52.78.139.47:8086/auth/lookup?auth_code=$enteredCode');
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
